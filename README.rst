@@ -55,4 +55,11 @@ Installation:
 
    $ ccp4-python -m pip install pairef --no-deps --upgrade --user
 
+Test:
+
+.. code ::
+
+   $ cd test
+   $ ccp4-python -m pytest -vv -s
+
 Developed by Martin Maly, University of Southampton, `martin.maly@soton.ac.uk <mailto:martin.maly@soton.ac.uk>`_
