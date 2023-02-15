@@ -53,7 +53,7 @@ Installation:
 
 .. code ::
 
-   $ ccp4-python -m pip install pairef --no-deps --upgrade --user
+   $ ccp4-python -m pip install import_serial --no-deps --upgrade --user
 
 Test:
 
