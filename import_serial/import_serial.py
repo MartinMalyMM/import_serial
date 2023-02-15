@@ -400,6 +400,21 @@ def run():
         required=True
     )
     parser.add_argument(
+        "--spacegroup",
+        type=str,
+        help="Specify space group",
+        metavar="spacegroup",
+        required=True
+    )
+    parser.add_argument(
+        "--cell",
+        type=float,
+        nargs=6,
+        help="Specify unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
+        metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
+        required=True
+    )
+    parser.add_argument(
         "--half-dataset",
         metavar=("hkl1", "hkl2"),
         help="Two half-data-set merge files from CrystFEL (usually .hkl1 and .hkl2)",
@@ -421,21 +436,6 @@ def run():
         "--dataset",
         type=str,
         help="dataset",
-    )
-    parser.add_argument(
-        "--spacegroup",
-        type=str,
-        help="Specify space group",
-        metavar="spacegroup",
-        required=True
-    )
-    parser.add_argument(
-        "--cell",
-        type=float,
-        nargs=6,
-        help="Specify unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
-        metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
-        required=True
     )
     parser.add_argument(
         "--dmax", "--lowres",

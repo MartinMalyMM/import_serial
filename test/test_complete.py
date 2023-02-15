@@ -47,10 +47,10 @@ Command line arguments:
 
 Input parameters:
   hklin 116720-721.lst-asdf-scale.hkl
-  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
-  project 116720-721.lst-asdf-scale
   spacegroup P21
   cell [39.4, 78.5, 48.0, 90.0, 97.94, 90.0]
+  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
+  project 116720-721.lst-asdf-scale
   d_min 1.65
   n_bins 10
 
