@@ -509,6 +509,8 @@ def run():
         print(
             f"Half-dataset files were found automatically and will be used "
             f"for calculation of statistics: {half_dataset[0]} {half_dataset[1]}")
+    else:
+        half_dataset = None
     # TO DO: check whether the files exists
     # TO DO: parse symmetry from .hkl file if not given
     try:
@@ -528,9 +530,11 @@ def run():
             m1 = get_miller_array(half_dataset[0], cs, "I", d_max=d_max, d_min=d_min)
             m2 = get_miller_array(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
             stats_compare = calc_stats_compare(m1, m2, d_max, d_min, n_bins)
-
-        stats_overall = {**stats_merged["overall"], **stats_compare["overall"]}
-        stats_binned = {**stats_merged["binned"], **stats_compare["binned"]}
+            stats_overall = {**stats_merged["overall"], **stats_compare["overall"]}
+            stats_binned = {**stats_merged["binned"], **stats_compare["binned"]}
+        else:
+            stats_overall = {**stats_merged["overall"]}
+            stats_binned = {**stats_merged["binned"]}
         stats = {"overall": stats_overall, "binned": stats_binned}
         stats_json = json.dumps(stats, indent=4)
         stats_xml = stats_to_xml(stats)  #, xmlout)
