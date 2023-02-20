@@ -51,9 +51,9 @@ List of all options:
 
 Installation:
 
-.. code ::
-
 The latest code from GitHub:
+
+.. code ::
 
    $ ccp4-python -m pip install https://github.com/MartinMalyMM/import_serial/archive/master.zip --no-deps --upgrade --user
 
