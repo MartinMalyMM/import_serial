@@ -10,8 +10,11 @@ import math
 import pandas as pd
 from math import sqrt
 import json
-from cctbx import miller, crystal, uctbx, sgtbx, xray
-from cctbx.array_family import flex
+try:
+    from cctbx import miller, crystal, uctbx, sgtbx, xray
+    from cctbx.array_family import flex
+except ModuleNotFoundError:
+    print("WARNING: ModuleNotFoundError: Module CCTBX was not found.")
 # TO DO: 3 input files
 # TO DO: unit cell parameters from stream file
 # TO DO: check output MTZ
