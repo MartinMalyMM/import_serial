@@ -59,6 +59,8 @@ The latest code from GitHub:
 
 or - from PyPI:
 
+.. code ::
+
    $ ccp4-python -m pip install import_serial --no-deps --upgrade --user
 
 Test:
