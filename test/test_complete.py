@@ -12,8 +12,11 @@ from import_serial import __version__
 "project, files, spacegroup, cell, others",
 [("116720-721.lst-asdf-scale",
   {"hklin": "116720-721.lst-asdf-scale.hkl", "hklin1": "116720-721.lst-asdf-scale.hkl1", "hklin2": "116720-721.lst-asdf-scale.hkl2"},
+   "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65"),
+ ("116720-721.lst-asdf-scale-no-half-dataset",
+  {"hklin": "116720-721.lst-asdf-scale.hkl"},
    "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65")],
-ids=["116720-721.lst-asdf-scale"])
+ids=["116720-721.lst-asdf-scale", "116720-721.lst-asdf-scale-no-half-dataset"])
 def test_complete(project, files, spacegroup, cell, others, tmp_environ):
     print("\nPerforming tests...")
     urllib_wget = urllib.request.urlretrieve
@@ -25,14 +28,15 @@ def test_complete(project, files, spacegroup, cell, others, tmp_environ):
         print("   .")
         assert os.path.isfile(f)
     hklin = files["hklin"]
-    hklin1 = files["hklin1"]
-    hklin2 = files["hklin2"]
     arguments = "--HKLIN " + hklin + \
-        " --half-dataset " + hklin1 + " " + hklin2 + \
         " --spacegroup " + spacegroup + \
         " --cell " + cell + \
         " --project " + project + \
         " " + others
+    if project == "116720-721.lst-asdf-scale":
+        hklin1 = files["hklin1"]
+        hklin2 = files["hklin2"]
+        arguments += " --half-dataset " + hklin1 + " " + hklin2
     print("   Executing process...")
     cp = run(arguments)
     assert cp.returncode == 0
@@ -42,15 +46,25 @@ def test_complete(project, files, spacegroup, cell, others, tmp_environ):
 
     expected_stdout = """Conversion of CrystFEL HKL file to MTZ and import into CCP4
 
-Command line arguments:
---HKLIN 116720-721.lst-asdf-scale.hkl --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2 --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --project 116720-721.lst-asdf-scale --nbins 10 --dmin 1.65
+"""
+    if project == "116720-721.lst-asdf-scale":
+        expected_stdout += """Command line arguments:
+--HKLIN 116720-721.lst-asdf-scale.hkl --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --project 116720-721.lst-asdf-scale --nbins 10 --dmin 1.65 --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2"""
+    elif project == "116720-721.lst-asdf-scale-no-half-dataset":
+        expected_stdout += """Command line arguments:
+--HKLIN 116720-721.lst-asdf-scale.hkl --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --project 116720-721.lst-asdf-scale-no-half-dataset --nbins 10 --dmin 1.65"""
+
+    expected_stdout += """
 
 Input parameters:
   hklin 116720-721.lst-asdf-scale.hkl
   spacegroup P21
   cell [39.4, 78.5, 48.0, 90.0, 97.94, 90.0]
-  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
-  project 116720-721.lst-asdf-scale
+"""
+    if project == "116720-721.lst-asdf-scale":
+        expected_stdout += """  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
+"""
+    expected_stdout += """  project """ + project + """
   d_min 1.65
   n_bins 10
 
@@ -77,7 +91,9 @@ d_max   d_min  #unique %complet. multip. <I> <I/sigma(I)>
 1.777  1.709  6819   100.0     38.7  11.05  1.42
 1.709  1.650  6854   100.0     37.3  7.57  1.10
 
-
+"""
+    if project == "116720-721.lst-asdf-scale":
+        expected_stdout += """
 Overall values:
 CC1/2 = 0.835 
 CC* = 0.954
@@ -98,19 +114,25 @@ d_max   d_min  CC1/2  CC*   Rsplit
 
 MTZ file created: 116720-721.lst-asdf-scale_dataset.mtz
 """
+    elif project == "116720-721.lst-asdf-scale-no-half-dataset":
+        expected_stdout += """
+MTZ file created: 116720-721.lst-asdf-scale-no-half-dataset_dataset.mtz
+"""
     stdout_all = cp.stdout.splitlines(True)
     assert "".join(stdout_all) == expected_stdout
 
     files_list = \
         [hklin,
-         hklin1,
-         hklin2,
          hklin + "_tmp",
-         hklin1 + "_tmp",
-         hklin2 + "_tmp",
-         "116720-721.lst-asdf-scale_dataset.mtz",
-         "116720-721.lst-asdf-scale_dataset.json",
          "program.xml"]
+    if project == "116720-721.lst-asdf-scale":
+        files_list = files_list + \
+            [hklin1,
+             hklin2,
+             hklin1 + "_tmp",
+             hklin2 + "_tmp",
+             "116720-721.lst-asdf-scale-no-half-dataset_dataset.mtz",
+             "116720-721.lst-asdf-scale-no-half-dataset_dataset.json",]
     for f in files_list:
         assert os.path.isfile(f)
         os.remove(f)  # Clean up a bit
