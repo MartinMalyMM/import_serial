@@ -157,13 +157,11 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats["overall"]["multiplicity"] = round(multiplicity, 1)
     stats["overall"]["I"] = round(i_mean, 2)
     stats["overall"]["IsigI"] = round(i_sig, 2)
-    print("Overall values:")
     print(f"#unique: {m_all_i.size()}")
     print(f"completeness = {completeness * 100:.1f} %")
     print(f"multiplicity = {multiplicity:.1f}")
     print(f"<I> = {i_mean:.2f}")
     print(f"<I/sigma(I)> = {i_sig:.2f}")
-    print("")
 
     # binned values
     m_all_i.setup_binner(n_bins=n_bins)  # TO DO when/where to set up binner?
@@ -175,8 +173,8 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats["binned"]["multiplicity"] = []
     stats["binned"]["I"] = []
     stats["binned"]["IsigI"] = []
-    print("Binned values:")
-    print(f"d_max   d_min  #unique %complet. multip. <I> <I/sigma(I)>")
+    # print("Binned values:")
+    # print(f"d_max   d_min  #unique %complet. multip. <I> <I/sigma(I)>")
     for i_bin in m_all_i.binner().range_used():
         sel = m_all_i.binner().selection(i_bin)
         m_all_i_sel = m_all_i.select(sel)
@@ -195,14 +193,12 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
         stats["binned"]["multiplicity"].append(round(multiplicity, 1))
         stats["binned"]["I"].append(round(i_mean, 2))
         stats["binned"]["IsigI"].append(round(i_sig, 2))
-        print(f"{res_low:.3f}  {res_high:.3f}  {n_ref}   {completeness * 100:.1f}     {multiplicity:.1f}  {i_mean:.2f}  {i_sig:.2f}")
+        # print(f"{res_low:.3f}  {res_high:.3f}  {n_ref}   {completeness * 100:.1f}     {multiplicity:.1f}  {i_mean:.2f}  {i_sig:.2f}")
     if n_ref != n_ref_nmeas:
         sys.stderr.write(
             "WARNING: Numbers of reflections in bins for the intensity Miller"
             "array and multiplicity Miller array do not equal.\n"
             "{n_ref} is not {n_ref_nmeas}\n")
-    print("")
-    print("")
     return stats
 
 
@@ -225,9 +221,8 @@ def calc_stats_compare(m1, m2, d_max, d_min, n_bins):
     stats["overall"]["cc"] = round(cc, 3)
     stats["overall"]["CCstar"] = round(CCstar, 3)
     stats["overall"]["rsplit"] = round(rsplit, 3)
-    print("Overall values:")
-    print(f"CC1/2 = {cc:.3f} \nCC* = {CCstar:.3f}\nRsplit = {rsplit:.3f}")
-    print("")
+    # print("Overall values:")
+    print(f"CC1/2 = {cc:.3f}\nCC* = {CCstar:.3f}\nRsplit = {rsplit:.3f}")
 
     # binned values
     m1.setup_binner(n_bins=n_bins)
@@ -235,8 +230,8 @@ def calc_stats_compare(m1, m2, d_max, d_min, n_bins):
     stats["binned"]["cc"] = []
     stats["binned"]["CCstar"] = []
     stats["binned"]["rsplit"] = []
-    print("Binned values:")
-    print(f"d_max   d_min  CC1/2  CC*   Rsplit")
+    # print("Binned values:")
+    # print(f"d_max   d_min  CC1/2  CC*   Rsplit")
     for i_bin in m1.binner().range_used():
         sel = m1.binner().selection(i_bin)
         m1_sel = m1.select(sel)
@@ -248,8 +243,7 @@ def calc_stats_compare(m1, m2, d_max, d_min, n_bins):
         stats["binned"]["cc"].append(round(cc, 3))
         stats["binned"]["CCstar"].append(round(CCstar, 3))
         stats["binned"]["rsplit"].append(round(rsplit, 3))
-        print(f"{res_low:.3f}  {res_high:.3f}  {cc:.3f} {CCstar:.3f} {rsplit:.3f}")
-    print("")
+        # print(f"{res_low:.3f}  {res_high:.3f}  {cc:.3f} {CCstar:.3f} {rsplit:.3f}")
     return stats
 
 
@@ -380,6 +374,30 @@ def stats_to_xml(stats):  #, xmlout="program.xml"):
     lines.append("</import_serial>")
     stats_xml = '\n'.join(lines)
     return stats_xml
+
+
+def stats_binned_print(stats_binned, half_dataset):
+    stats_print = "%8s%8s%9s%10s%8s%9s%13s"
+    stats_print_header = ["d_max", "d_min", "#unique", "%complet.", "multip.", "<I>", "<I/sigma(I)>"]
+    if half_dataset:
+        stats_print += "%8s%8s%8s"
+        stats_print_header += ["CC(1/2)", "CC*", "Rsplit"]
+    print(stats_print % tuple(stats_print_header))
+    for i in range(len(stats_binned["d_max"])):
+        values = []
+        values.append(stats_binned["d_max"][i])
+        values.append(stats_binned["d_min"][i])
+        values.append(stats_binned["n_unique"][i])
+        values.append(stats_binned["completeness"][i])
+        values.append(stats_binned["multiplicity"][i])
+        values.append(stats_binned["I"][i])
+        values.append(stats_binned["IsigI"][i])
+        if half_dataset:
+            values.append(stats_binned["cc"][i])
+            values.append(stats_binned["CCstar"][i])
+            values.append(stats_binned["rsplit"][i])
+        print(stats_print % tuple(values))
+    return
 
 
 def run():
@@ -515,7 +533,8 @@ def run():
     # TO DO: parse symmetry from .hkl file if not given
     try:
         print("")
-        print("Statistics:")
+        print("DATA STATISTICS:")
+        print("================")
         print("")
         # load data to Miller array
         cs = crystal.symmetry(
@@ -524,9 +543,11 @@ def run():
         )
         m_all_i = get_miller_array(args.hklin, cs, "I", d_max=d_max, d_min=d_min)
         m_all_nmeas = get_miller_array(args.hklin, cs, "nmeas", d_max=d_max, d_min=d_min)
+        print("Overall values:")
+        print("")
         stats_merged = calc_stats_merged(m_all_i, m_all_nmeas, d_max, d_min, n_bins)
         if half_dataset:
-            # calculate statistics CC1/2 and Rsplit
+            # calculate statistics CC1/2, CC* and Rsplit
             m1 = get_miller_array(half_dataset[0], cs, "I", d_max=d_max, d_min=d_min)
             m2 = get_miller_array(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
             stats_compare = calc_stats_compare(m1, m2, d_max, d_min, n_bins)
@@ -535,6 +556,9 @@ def run():
         else:
             stats_overall = {**stats_merged["overall"]}
             stats_binned = {**stats_merged["binned"]}
+
+        print("\nBinned values:\n")
+        stats_binned_print(stats_binned, half_dataset)
         stats = {"overall": stats_overall, "binned": stats_binned}
         stats_json = json.dumps(stats, indent=4)
         stats_xml = stats_to_xml(stats)  #, xmlout)
@@ -575,7 +599,7 @@ def run():
     mtz_dataset.add_miller_array(m_all_nmeas, column_root_label="NMEAS")
     # mtz_dataset.add_miller_array(r_free_flags, column_root_label="FreeR_flag")
     mtz_dataset.mtz_object().write(hklout)
-    print(f"MTZ file created: {hklout}")
+    print(f"\nMTZ file created: {hklout}")
 
     # TO DO - analysis as for 'import_merged' - pointless, aimless, phaser_analysis, ctruncate
     return
