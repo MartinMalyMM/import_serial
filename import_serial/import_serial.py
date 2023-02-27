@@ -143,7 +143,7 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats = {"overall": {}, "binned": {}}
     m_all_i = m_all_i.resolution_filter(d_max=d_max, d_min=d_min)
     res_low, res_high = m_all_i.d_max_min()
-    n_ref = m_all_i.size()
+    n_unique = m_all_i.size()
     completeness = m_all_i.as_non_anomalous_set().completeness()
     m_all_i = m_all_i.map_to_asu()
     m_all_i = m_all_i.sort("packed_indices")
@@ -152,14 +152,17 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     # overall values
     i_mean = m_all_i.mean()
     i_sig = m_all_i.i_over_sig_i()
+    n_obs = int(m_all_nmeas.sum())
     multiplicity = m_all_nmeas.mean()
     stats["overall"]["d_max"] = round(res_low, 3)
     stats["overall"]["d_min"] = round(res_high, 3)
-    stats["overall"]["n_unique"] = n_ref
+    stats["overall"]["n_unique"] = n_unique
+    stats["overall"]["n_obs"] = n_obs
     stats["overall"]["completeness"] = round(completeness * 100, 1)
     stats["overall"]["multiplicity"] = round(multiplicity, 1)
     stats["overall"]["I"] = round(i_mean, 2)
     stats["overall"]["IsigI"] = round(i_sig, 2)
+    print(f"#observed: {n_obs}")
     print(f"#unique: {m_all_i.size()}")
     print(f"completeness = {completeness * 100:.1f} %")
     print(f"multiplicity = {multiplicity:.1f}")
@@ -171,6 +174,7 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     m_all_nmeas.use_binning(m_all_i.binner())
     stats["binned"]["d_max"] = []
     stats["binned"]["d_min"] = []
+    stats["binned"]["n_obs"] = []
     stats["binned"]["n_unique"] = []
     stats["binned"]["completeness"] = []
     stats["binned"]["multiplicity"] = []
@@ -183,25 +187,27 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
         m_all_i_sel = m_all_i.select(sel)
         m_all_nmeas_sel = m_all_nmeas.select(sel)
         res_low, res_high = m_all_i_sel.d_max_min()
-        n_ref = m_all_i_sel.size()
+        n_unique = m_all_i_sel.size()
         completeness = m_all_i_sel.as_non_anomalous_set().completeness(d_max=res_low)
-        n_ref_nmeas = m_all_nmeas_sel.size()
+        n_obs = int(m_all_nmeas_sel.sum())
+        n_ref_nmeas = int(m_all_nmeas_sel.size())
         multiplicity = m_all_nmeas_sel.mean()
         i_mean =  m_all_i_sel.mean()
         i_sig =  m_all_i_sel.i_over_sig_i()
         stats["binned"]["d_max"].append(round(res_low, 3))
         stats["binned"]["d_min"].append(round(res_high, 3))
-        stats["binned"]["n_unique"].append(n_ref)
+        stats["binned"]["n_obs"].append(n_obs)
+        stats["binned"]["n_unique"].append(n_unique)
         stats["binned"]["completeness"].append(round(completeness * 100, 1))
         stats["binned"]["multiplicity"].append(round(multiplicity, 1))
         stats["binned"]["I"].append(round(i_mean, 2))
         stats["binned"]["IsigI"].append(round(i_sig, 2))
-        # print(f"{res_low:.3f}  {res_high:.3f}  {n_ref}   {completeness * 100:.1f}     {multiplicity:.1f}  {i_mean:.2f}  {i_sig:.2f}")
-    if n_ref != n_ref_nmeas:
-        sys.stderr.write(
-            "WARNING: Numbers of reflections in bins for the intensity Miller"
-            "array and multiplicity Miller array do not equal.\n"
-            "{n_ref} is not {n_ref_nmeas}\n")
+        # print(f"{res_low:.3f}  {res_high:.3f}  {n_unique}   {completeness * 100:.1f}     {multiplicity:.1f}  {i_mean:.2f}  {i_sig:.2f}")
+        if n_unique != n_ref_nmeas:
+            sys.stderr.write(
+                f"WARNING: Numbers of reflections in bins for the intensity Miller"
+                f"array and multiplicity Miller array do not equal.\n"
+                f"{n_ref} is not {n_ref_nmeas} in bin {round(res_low, 3)}-{round(res_high, 3)}\n")
     return stats
 
 
@@ -380,19 +386,20 @@ def stats_to_xml(stats):  #, xmlout="program.xml"):
 
 
 def stats_binned_print(stats_binned, half_dataset):
-    stats_print = "%8s%8s%9s%10s%8s%9s%13s"
-    stats_print_header = ["d_max", "d_min", "#unique", "%complet.", "multip.", "<I>", "<I/sigma(I)>"]
+    stats_print = "%9s%9s%11s%8s%9s%9s%9s%9s"
+    stats_print_header = ["d_max", "d_min", "#obs", "#uniq", "mult.", "%comp", "<I>", "<I/sI>"]
     if half_dataset:
-        stats_print += "%8s%8s%8s"
-        stats_print_header += ["CC(1/2)", "CC*", "Rsplit"]
+        stats_print += "%9s%9s%9s"
+        stats_print_header += ["cc1/2", "cc*", "r_split"]
     print(stats_print % tuple(stats_print_header))
     for i in range(len(stats_binned["d_max"])):
         values = []
         values.append(stats_binned["d_max"][i])
         values.append(stats_binned["d_min"][i])
+        values.append(stats_binned["n_obs"][i])
         values.append(stats_binned["n_unique"][i])
-        values.append(stats_binned["completeness"][i])
         values.append(stats_binned["multiplicity"][i])
+        values.append(stats_binned["completeness"][i])
         values.append(stats_binned["I"][i])
         values.append(stats_binned["IsigI"][i])
         if half_dataset:
