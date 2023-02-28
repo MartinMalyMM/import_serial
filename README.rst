@@ -1,6 +1,9 @@
 import_serial
 =============
 
+Import data from serial macromolecular crystallography to CCP4.
+The program calculates data statistics and convert data to the MTZ format.
+
 Requirements: ccp4-python from CCP4 8.0 or later (it includes CCTBX)
 
 Example of usage:
