@@ -10,11 +10,11 @@ from import_serial import __version__
 
 @pytest.mark.parametrize(
 "project, files, spacegroup, cell, others",
-[("116720-721.lst-asdf-scale",
-  {"hklin": "116720-721.lst-asdf-scale.hkl", "hklin1": "116720-721.lst-asdf-scale.hkl1", "hklin2": "116720-721.lst-asdf-scale.hkl2"},
-   "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65"),
- ("116720-721.lst-asdf-scale-no-half-dataset",
+[("116720-721.lst-asdf-scale-no-half-dataset",
   {"hklin": "116720-721.lst-asdf-scale.hkl"},
+   "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65"),
+ ("116720-721.lst-asdf-scale",
+  {"hklin": "116720-721.lst-asdf-scale.hkl", "hklin1": "116720-721.lst-asdf-scale.hkl1", "hklin2": "116720-721.lst-asdf-scale.hkl2"},
    "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65")],
 ids=["116720-721.lst-asdf-scale", "116720-721.lst-asdf-scale-no-half-dataset"])
 def test_complete(project, files, spacegroup, cell, others, tmp_environ):
