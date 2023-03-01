@@ -1,5 +1,4 @@
-# author: Martin Maly
-# email: martin.maly.mm@email.cz
+# coding: utf-8
 import argparse
 import os
 import sys
@@ -13,12 +12,9 @@ import json
 try:
     from cctbx import miller, crystal, uctbx, sgtbx, xray
     from cctbx.array_family import flex
+    from iotbx.reflection_file_reader import any_reflection_file
 except ModuleNotFoundError:
     print("WARNING: ModuleNotFoundError: Module CCTBX was not found.")
-# TO DO: 3 input files
-# TO DO: unit cell parameters from stream file
-# TO DO: check output MTZ
-# TO DO: wavelength
 
 
 def hkl_strip(hklin):
@@ -103,7 +99,7 @@ def calc_CCstar(CChalf):
     return CCstar
 
 
-def get_miller_array(hklin, cs, values="I", d_max=0, d_min=0):
+def get_miller_array_crystfel(hklin, cs, values="I", d_max=0, d_min=0):
     assert values == "I" or values == "nmeas"
     # read data from the text file
     # expected format of a fixed-width .hkl file:
@@ -385,10 +381,11 @@ def stats_to_xml(stats):  #, xmlout="program.xml"):
     return stats_xml
 
 
-def stats_binned_print(stats_binned, half_dataset):
+def stats_binned_print(stats_binned):  # , half_dataset_available=False):
     stats_print = "%9s%9s%11s%8s%9s%9s%9s%9s"
     stats_print_header = ["d_max", "d_min", "#obs", "#uniq", "mult.", "%comp", "<I>", "<I/sI>"]
-    if half_dataset:
+    # if half_dataset_available:
+    if len(stats_binned) == 11:
         stats_print += "%9s%9s%9s"
         stats_print_header += ["cc1/2", "cc*", "r_split"]
     print(stats_print % tuple(stats_print_header))
@@ -402,7 +399,8 @@ def stats_binned_print(stats_binned, half_dataset):
         values.append(stats_binned["completeness"][i])
         values.append(stats_binned["I"][i])
         values.append(stats_binned["IsigI"][i])
-        if half_dataset:
+        # if half_dataset_available:
+        if len(stats_binned) == 11:
             values.append(stats_binned["cc"][i])
             values.append(stats_binned["CCstar"][i])
             values.append(stats_binned["rsplit"][i])
@@ -423,7 +421,7 @@ def run():
     parser.add_argument(
         "--hklin", "--HKLIN",
         metavar=("hklin_file"),
-        help="Specify one merged hkl file from CrystFEL",
+        help="Specify one merged hkl file from CrystFEL or mtz file from DIALS",
         type=str,
         required=True
     )
@@ -432,7 +430,7 @@ def run():
         type=str,
         help="Specify space group",
         metavar="spacegroup",
-        required=True
+        # required=True
     )
     parser.add_argument(
         "--cell",
@@ -440,7 +438,7 @@ def run():
         nargs=6,
         help="Specify unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
         metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
-        required=True
+        # required=True
     )
     parser.add_argument(
         "--half-dataset",
@@ -500,6 +498,13 @@ def run():
         if getattr(args, arg):
             print('  {} {}'.format(arg, getattr(args, arg) or ''))
     # check whether the files exists TO DO
+
+    hklin = args.hklin
+    if any_reflection_file(hklin).file_type() == 'ccp4_mtz':
+        hklin_format = "dials"
+    elif any_reflection_file(hklin).file_type() == None:
+        hklin_format = "crystfel"
+
     if args.spacegroup:
         spacegroup = args.spacegroup  # TO DO
     print("")
@@ -528,38 +533,62 @@ def run():
     d_max = args.d_max
     d_min = args.d_min
     n_bins = args.n_bins
-    cell_str = str(args.cell[0]) + " " + str(args.cell[1]) + " " + str(args.cell[2]) + " " + str(args.cell[3]) + " " + str(args.cell[4]) + " " + str(args.cell[5])
+    if args.cell:
+        cell_str = str(args.cell[0]) + " " + str(args.cell[1]) + " " + str(args.cell[2]) + " " + str(args.cell[3]) + " " + str(args.cell[4]) + " " + str(args.cell[5])
+    # crystfel: check whether we know spacegroup and cell
+    # dials: direct input arguments in command line for spacegroup and cell have higher priority
 
-    if args.half_dataset:
-        half_dataset = args.half_dataset
-    elif os.path.isfile(args.hklin) and os.path.isfile(args.hklin + "1") and os.path.isfile(args.hklin + "2"):
-        half_dataset = (args.hklin + "1", args.hklin + "2")
-        print(
-            f"Half-dataset files were found automatically and will be used "
-            f"for calculation of statistics: {half_dataset[0]} {half_dataset[1]}")
-    else:
-        half_dataset = None
-    # TO DO: check whether the files exists
-    # TO DO: parse symmetry from .hkl file if not given
+    print("")
+    print("DATA STATISTICS:")
+    print("================")
+    print("")
     try:
-        print("")
-        print("DATA STATISTICS:")
-        print("================")
-        print("")
-        # load data to Miller array
-        cs = crystal.symmetry(
-            unit_cell=uctbx.unit_cell(cell),
-            space_group=sgtbx.space_group_info(spacegroup).group()
-        )
-        m_all_i = get_miller_array(args.hklin, cs, "I", d_max=d_max, d_min=d_min)
-        m_all_nmeas = get_miller_array(args.hklin, cs, "nmeas", d_max=d_max, d_min=d_min)
+        m1 = None
+        m2 = None
+        # load data to Miller arrays
+        if hklin_format == "dials":
+            miller_arrays = any_reflection_file(file_name=hklin).as_miller_arrays()
+            m_all_i = None
+            m1_all_nmeas = None
+            m2_all_nmeas = None
+            for i, column in enumerate(miller_arrays):
+                if column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IMEAN":
+                    m_all_i = miller_arrays[i]
+                elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF1":
+                    m1 = miller_arrays[i]
+                elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF2":
+                    m2 = miller_arrays[i]
+                elif str(column.info()).split(".mtz:")[1].split(",")[0] == "NHALF1":
+                    m1_all_nmeas = miller_arrays[i]
+                elif str(column.info()).split(".mtz:")[1].split(",")[0] == "NHALF2":
+                    m2_all_nmeas = miller_arrays[i]
+            # TO DO #######################################
+            m_all_nmeas = m1_all_nmeas
+            # TO DO #######################################
+        elif hklin_format == "crystfel":
+            if args.half_dataset:
+                half_dataset = args.half_dataset
+            elif os.path.isfile(hklin) and os.path.isfile(hklin + "1") and os.path.isfile(hklin + "2"):
+                half_dataset = (hklin + "1", hklin + "2")
+                print(
+                    f"Half-dataset files were found automatically and will be used "
+                    f"for calculation of statistics: {half_dataset[0]} {half_dataset[1]}")
+            else:
+                half_dataset = None
+            cs = crystal.symmetry(
+                unit_cell=uctbx.unit_cell(cell),
+                space_group=sgtbx.space_group_info(spacegroup).group()
+            )
+            m_all_i = get_miller_array_crystfel(hklin, cs, "I", d_max=d_max, d_min=d_min)
+            m_all_nmeas = get_miller_array_crystfel(hklin, cs, "nmeas", d_max=d_max, d_min=d_min)
+            if half_dataset:
+                m1 = get_miller_array_crystfel(half_dataset[0], cs, "I", d_max=d_max, d_min=d_min)
+                m2 = get_miller_array_crystfel(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
         print("Overall values:")
         print("")
         stats_merged = calc_stats_merged(m_all_i, m_all_nmeas, d_max, d_min, n_bins)
-        if half_dataset:
+        if m1 and m2:
             # calculate statistics CC1/2, CC* and Rsplit
-            m1 = get_miller_array(half_dataset[0], cs, "I", d_max=d_max, d_min=d_min)
-            m2 = get_miller_array(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
             stats_compare = calc_stats_compare(m1, m2, d_max, d_min, n_bins)
             stats_overall = {**stats_merged["overall"], **stats_compare["overall"]}
             stats_binned = {**stats_merged["binned"], **stats_compare["binned"]}
@@ -568,7 +597,7 @@ def run():
             stats_binned = {**stats_merged["binned"]}
 
         print("\nBinned values:\n")
-        stats_binned_print(stats_binned, half_dataset)
+        stats_binned_print(stats_binned)
         stats = {"overall": stats_overall, "binned": stats_binned}
         stats_json = json.dumps(stats, indent=4)
         stats_xml = stats_to_xml(stats)  #, xmlout)
