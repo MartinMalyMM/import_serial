@@ -656,6 +656,11 @@ def run():
         # mtz_dataset.add_miller_array(r_free_flags, column_root_label="FreeR_flag")
         mtz_dataset.mtz_object().write(hklout)
         print(f"\nMTZ file created: {hklout}")
+        # Clean up a bit
+        files_to_remove = [hklin + "_tmp", half_dataset[0] + "_tmp", half_dataset[1] + "_tmp"]
+        for f in files_to_remove:
+            if os.path.isfile(f):
+                os.remove(f)
     elif hklin_format == "dials":
         import shutil
         shutil.copy2(hklin, hklout)

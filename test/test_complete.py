@@ -137,6 +137,6 @@ MTZ file created: 116720-721.lst-asdf-scale-no-half-dataset_dataset.mtz
              "116720-721.lst-asdf-scale-no-half-dataset_dataset.json",]
     for f in files_list:
         assert os.path.isfile(f)
-        os.remove(f)  # Clean up a bit
+        os.remove(f)  # Clean up
         pass
     return
