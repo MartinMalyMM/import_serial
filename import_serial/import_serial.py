@@ -12,7 +12,7 @@ import json
 try:
     from cctbx import miller, crystal, uctbx, sgtbx, xray
     from cctbx.array_family import flex
-    from iotbx.reflection_file_reader import any_reflection_file
+    from iotbx import mtz, reflection_file_reader
 except ModuleNotFoundError:
     print("WARNING: ModuleNotFoundError: Module CCTBX was not found.")
 
@@ -500,9 +500,9 @@ def run():
     # check whether the files exists TO DO
 
     hklin = args.hklin
-    if any_reflection_file(hklin).file_type() == 'ccp4_mtz':
+    if reflection_file_reader.any_reflection_file(hklin).file_type() == 'ccp4_mtz':
         hklin_format = "dials"
-    elif any_reflection_file(hklin).file_type() == None:
+    elif reflection_file_reader.any_reflection_file(hklin).file_type() == None:
         hklin_format = "crystfel"
 
     if args.spacegroup:
@@ -547,24 +547,24 @@ def run():
         m2 = None
         # load data to Miller arrays
         if hklin_format == "dials":
-            miller_arrays = any_reflection_file(file_name=hklin).as_miller_arrays()
+            # miller_arrays = reflection_file_reader.any_reflection_file(file_name=hklin).as_miller_arrays()
+            miller_arrays = mtz.object(hklin).as_miller_arrays()
             m_all_i = None
             m1_all_nmeas = None
             m2_all_nmeas = None
             for i, column in enumerate(miller_arrays):
-                if column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IMEAN":
-                    m_all_i = miller_arrays[i]
-                elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF1":
-                    m1 = miller_arrays[i]
-                elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF2":
-                    m2 = miller_arrays[i]
-                elif str(column.info()).split(".mtz:")[1].split(",")[0] == "NHALF1":
-                    m1_all_nmeas = miller_arrays[i]
-                elif str(column.info()).split(".mtz:")[1].split(",")[0] == "NHALF2":
-                    m2_all_nmeas = miller_arrays[i]
-            # TO DO #######################################
-            m_all_nmeas = m1_all_nmeas
-            # TO DO #######################################
+                # print(str(column.info().labels))
+                # if column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IMEAN":
+                # elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF1":
+                # elif column.is_xray_intensity_array() and str(column.info()).split(".mtz:")[1].split(",")[0] == "IHALF2":
+                if column.is_xray_intensity_array() and column.info().labels == ["IMEAN", "SIGIMEAN"]:
+                    m_all_i = column
+                elif column.is_xray_intensity_array() and column.info().labels == ["IHALF1", "SIGIHALF1"]:
+                    m1 = column
+                elif column.is_xray_intensity_array() and column.info().labels == ["IHALF2", "SIGIHALF2"]:
+                    m2 = column
+                elif column.info().labels == ['N']:
+                    m_all_nmeas = column.as_double()
         elif hklin_format == "crystfel":
             if args.half_dataset:
                 half_dataset = args.half_dataset
@@ -633,12 +633,13 @@ def run():
     #    # rc = p.returncode
     # remove hkltmp ?
     # print(f"MTZ file created: {hklout}")
-
-    mtz_dataset = m_all_i.as_mtz_dataset(column_root_label="IMEAN")
-    mtz_dataset.add_miller_array(m_all_nmeas, column_root_label="NMEAS")
-    # mtz_dataset.add_miller_array(r_free_flags, column_root_label="FreeR_flag")
-    mtz_dataset.mtz_object().write(hklout)
-    print(f"\nMTZ file created: {hklout}")
-
-    # TO DO - analysis as for 'import_merged' - pointless, aimless, phaser_analysis, ctruncate
+    if hklin_format == "crystfel":
+        mtz_dataset = m_all_i.as_mtz_dataset(column_root_label="IMEAN")
+        mtz_dataset.add_miller_array(m_all_nmeas, column_root_label="NMEAS")
+        # mtz_dataset.add_miller_array(r_free_flags, column_root_label="FreeR_flag")
+        mtz_dataset.mtz_object().write(hklout)
+        print(f"\nMTZ file created: {hklout}")
+    elif hklin_format == "dials":
+        import shutil
+        shutil.copy2(hklin, hklout)
     return
