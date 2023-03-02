@@ -382,13 +382,18 @@ def stats_to_xml(stats):  #, xmlout="program.xml"):
 
 
 def stats_binned_print(stats_binned):  # , half_dataset_available=False):
-    stats_print = "%9s%9s%11s%8s%9s%9s%9s%9s"
-    stats_print_header = ["d_max", "d_min", "#obs", "#uniq", "mult.", "%comp", "<I>", "<I/sI>"]
+    # stats_print = "%9s%9s%11s%8s%9s%9s%9s%9s"
+    header = ["d_max", "d_min", "#obs", "#uniq", "mult.", "%comp", "<I>", "<I/sI>"]
+    stats_print_format_header = '{:>8}{:>8}{:>9}{:>8}{:>8}{:>8}{:>9}{:>8}'
+    stats_print_format_values =  '{:>8.2f}{:>8.2f}{:>9d}{:>8d}{:>8.2f}{:>8.2f}{:>9.1f}{:>8.1f}'
     # if half_dataset_available:
     if len(stats_binned) == 11:
-        stats_print += "%9s%9s%9s"
-        stats_print_header += ["cc1/2", "cc*", "r_split"]
-    print(stats_print % tuple(stats_print_header))
+        # stats_print += "%9s%9s%9s"
+        header += ["cc1/2", "cc*", "r_split"]
+        stats_print_format_header += '{:>8}{:>8}{:>8}'
+        stats_print_format_values += '{:>8.3f}{:>8.3f}{:>8.3f}'
+    # print(stats_print % tuple(stats_print_header))
+    print(stats_print_format_header.format(*header))
     for i in range(len(stats_binned["d_max"])):
         values = []
         values.append(stats_binned["d_max"][i])
@@ -404,7 +409,8 @@ def stats_binned_print(stats_binned):  # , half_dataset_available=False):
             values.append(stats_binned["cc"][i])
             values.append(stats_binned["CCstar"][i])
             values.append(stats_binned["rsplit"][i])
-        print(stats_print % tuple(values))
+        # print(stats_print % tuple(values))
+        print(stats_print_format_values.format(*values))
     return
 
 
