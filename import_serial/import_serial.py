@@ -657,7 +657,10 @@ def run():
         mtz_dataset.mtz_object().write(hklout)
         print(f"\nMTZ file created: {hklout}")
         # Clean up a bit
-        files_to_remove = [hklin + "_tmp", half_dataset[0] + "_tmp", half_dataset[1] + "_tmp"]
+        files_to_remove = [hklin + "_tmp"]
+        if half_dataset:
+            files_to_remove += [f'{half_dataset[0]}_tmp']
+            files_to_remove += [f'{half_dataset[1]}_tmp']
         for f in files_to_remove:
             if os.path.isfile(f):
                 os.remove(f)
