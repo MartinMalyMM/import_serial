@@ -160,10 +160,10 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats["overall"]["IsigI"] = round(i_sig, 2)
     print(f"#observed: {n_obs}")
     print(f"#unique: {m_all_i.size()}")
-    print(f"completeness = {completeness * 100:.1f} %")
-    print(f"multiplicity = {multiplicity:.1f}")
-    print(f"<I> = {i_mean:.2f}")
-    print(f"<I/sigma(I)> = {i_sig:.2f}")
+    print(f"completeness = {completeness * 100:.2f} %")
+    print(f"multiplicity = {multiplicity:.2f}")
+    print(f"<I> = {i_mean:.1f}")
+    print(f"<I/sigma(I)> = {i_sig:.1f}")
 
     # binned values
     stats["binned"]["d_max"] = []
