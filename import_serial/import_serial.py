@@ -137,13 +137,13 @@ def get_miller_array_crystfel(hklin, cs, values="I", d_max=0, d_min=0):
 
 def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats = {"overall": {}, "binned": {}}
-    m_all_i = m_all_i.resolution_filter(d_max=d_max, d_min=d_min)
     res_low, res_high = m_all_i.d_max_min()
     n_unique = m_all_i.size()
     completeness = m_all_i.as_non_anomalous_set().completeness()
     m_all_i = m_all_i.map_to_asu()
+    m_all_i.setup_binner(n_bins=n_bins)
     m_all_i = m_all_i.sort("packed_indices")
-    m_all_nmeas = m_all_nmeas.resolution_filter(d_max=d_max, d_min=d_min)
+    m_all_i.setup_binner(n_bins=n_bins) # need to redo the binner as is lost above
 
     # overall values
     i_mean = m_all_i.mean()
@@ -154,8 +154,8 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     stats["overall"]["d_min"] = round(res_high, 3)
     stats["overall"]["n_unique"] = n_unique
     stats["overall"]["n_obs"] = n_obs
-    stats["overall"]["completeness"] = round(completeness * 100, 1)
-    stats["overall"]["multiplicity"] = round(multiplicity, 1)
+    stats["overall"]["completeness"] = round(completeness * 100, 2)
+    stats["overall"]["multiplicity"] = round(multiplicity, 2)
     stats["overall"]["I"] = round(i_mean, 2)
     stats["overall"]["IsigI"] = round(i_sig, 2)
     print(f"#observed: {n_obs}")
@@ -166,8 +166,6 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     print(f"<I/sigma(I)> = {i_sig:.2f}")
 
     # binned values
-    m_all_i.setup_binner(n_bins=n_bins)  # TO DO when/where to set up binner?
-    m_all_nmeas.use_binning(m_all_i.binner())
     stats["binned"]["d_max"] = []
     stats["binned"]["d_min"] = []
     stats["binned"]["n_obs"] = []
@@ -194,8 +192,8 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
         stats["binned"]["d_min"].append(round(res_high, 3))
         stats["binned"]["n_obs"].append(n_obs)
         stats["binned"]["n_unique"].append(n_unique)
-        stats["binned"]["completeness"].append(round(completeness * 100, 1))
-        stats["binned"]["multiplicity"].append(round(multiplicity, 1))
+        stats["binned"]["completeness"].append(round(completeness * 100, 2))
+        stats["binned"]["multiplicity"].append(round(multiplicity, 2))
         stats["binned"]["I"].append(round(i_mean, 2))
         stats["binned"]["IsigI"].append(round(i_sig, 2))
         # print(f"{res_low:.3f}  {res_high:.3f}  {n_unique}   {completeness * 100:.1f}     {multiplicity:.1f}  {i_mean:.2f}  {i_sig:.2f}")
@@ -207,7 +205,7 @@ def calc_stats_merged(m_all_i, m_all_nmeas, d_max=0, d_min=0, n_bins=10):
     return stats
 
 
-def calc_stats_compare(m1, m2, d_max, d_min, n_bins):
+def calc_stats_compare(m_all, m1, m2, d_max, d_min, n_bins):
     stats = {"overall": {}, "binned": {}}
     m1 = m1.resolution_filter(d_max=d_max, d_min=d_min)
     m1 = m1.map_to_asu()
@@ -230,8 +228,8 @@ def calc_stats_compare(m1, m2, d_max, d_min, n_bins):
     print(f"CC1/2 = {cc:.3f}\nCC* = {CCstar:.3f}\nRsplit = {rsplit:.3f}")
 
     # binned values
-    m1.setup_binner(n_bins=n_bins)
-    m2.use_binning(m1.binner())
+    m1.use_binning(m_all.binner())
+    m2.use_binning(m_all.binner())
     stats["binned"]["cc"] = []
     stats["binned"]["CCstar"] = []
     stats["binned"]["rsplit"] = []
@@ -603,10 +601,14 @@ def run():
                 m2 = get_miller_array_crystfel(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
         print("Overall values:")
         print("")
+        m_all_i = m_all_i.resolution_filter(d_max=d_max, d_min=d_min)
+        m_all_nmeas = m_all_nmeas.resolution_filter(d_max=d_max, d_min=d_min)
+        m_all_i.setup_binner(n_bins=n_bins)
+        m_all_nmeas.use_binning(m_all_i.binner())
         stats_merged = calc_stats_merged(m_all_i, m_all_nmeas, d_max, d_min, n_bins)
         if m1 and m2:
             # calculate statistics CC1/2, CC* and Rsplit
-            stats_compare = calc_stats_compare(m1, m2, d_max, d_min, n_bins)
+            stats_compare = calc_stats_compare(m_all_i, m1, m2, d_max, d_min, n_bins)
             stats_overall = {**stats_merged["overall"], **stats_compare["overall"]}
             stats_binned = {**stats_merged["binned"], **stats_compare["binned"]}
         else:
