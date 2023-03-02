@@ -498,7 +498,6 @@ def run():
     for arg in vars(args):
         if getattr(args, arg):
             print('  {} {}'.format(arg, getattr(args, arg) or ''))
-    # check whether the files exists TO DO
 
     hklin = args.hklin
     if reflection_file_reader.any_reflection_file(hklin).file_type() == 'ccp4_mtz':
@@ -599,12 +598,15 @@ def run():
             if half_dataset:
                 m1 = get_miller_array_crystfel(half_dataset[0], cs, "I", d_max=d_max, d_min=d_min)
                 m2 = get_miller_array_crystfel(half_dataset[1], cs, "I", d_max=d_max, d_min=d_min)
-        print("Overall values:")
-        print("")
+
+        # set d_min, d_max and binning to miller arrays
         m_all_i = m_all_i.resolution_filter(d_max=d_max, d_min=d_min)
         m_all_nmeas = m_all_nmeas.resolution_filter(d_max=d_max, d_min=d_min)
         m_all_i.setup_binner(n_bins=n_bins)
         m_all_nmeas.use_binning(m_all_i.binner())
+
+        # calculate and print statistics
+        print("Overall values:\n")
         stats_merged = calc_stats_merged(m_all_i, m_all_nmeas, d_max, d_min, n_bins)
         if m1 and m2:
             # calculate statistics CC1/2, CC* and Rsplit
@@ -614,9 +616,10 @@ def run():
         else:
             stats_overall = {**stats_merged["overall"]}
             stats_binned = {**stats_merged["binned"]}
-
         print("\nBinned values:\n")
         stats_binned_print(stats_binned)
+        
+        # save statistics to files
         stats = {"overall": stats_overall, "binned": stats_binned}
         stats_json = json.dumps(stats, indent=4)
         stats_xml = stats_to_xml(stats)  #, xmlout)
