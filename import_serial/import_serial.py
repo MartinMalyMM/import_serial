@@ -271,7 +271,6 @@ def calc_cc_rsplit(half_dataset, spacegroup, cell, d_max=0, d_min=0, n_bins=10):
     half2 = pd.read_csv(
         half_dataset[1], header=None, index_col=False, sep='\s+',
         names=("h", "k", "l", "I", "phase", "sigma(I)", "nmeas"))
-    #print(str(half1["nmeas"][:20])) ERASE
     h1 = flex.int(half1["h"])
     k1 = flex.int(half1["k"])
     l1 = flex.int(half1["l"])
@@ -326,7 +325,6 @@ def calc_cc_rsplit(half_dataset, spacegroup, cell, d_max=0, d_min=0, n_bins=10):
     rsplit = calc_rsplit(m1.data(), m2.data())
     i_sig = m1.i_over_sig_i()
     multiplicity = m1_nmeas.mean()
-    #multiplicity = m1_nmeas.data().mean() NO
     print("\nOverall values:")
     print(f"CC1/2 = {cc:.3f} \nRsplit = {rsplit:.3f} \nI/sigma(I) = {i_sig:.3f}")
     print(f"Multiplicity = {multiplicity:.1f}")
@@ -422,19 +420,19 @@ def run():
                          "Aborting.\n")
         sys.exit(1)
     parser = argparse.ArgumentParser(  # TODO requirement
-        description="Covert hkl file(s) from CrystFEL to mtz and calculate statistics"
+        description="Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4"
     )
     parser.add_argument(
         "--hklin", "--HKLIN",
         metavar=("hklin_file"),
-        help="Specify one merged hkl file from CrystFEL or mtz file from DIALS",
+        help="Specify merged mtz file from xia2.ssx or merged hkl file from CrystFEL",
         type=str,
         required=True
     )
     parser.add_argument(
         "--spacegroup",
         type=str,
-        help="Specify space group",
+        help="Space group",
         metavar="spacegroup",
         # required=True
     )
@@ -442,14 +440,14 @@ def run():
         "--cell",
         type=float,
         nargs=6,
-        help="Specify unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
+        help="Unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
         metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
         # required=True
     )
     parser.add_argument(
         "--half-dataset",
         metavar=("hkl1", "hkl2"),
-        help="Two half-data-set merge files from CrystFEL (usually .hkl1 and .hkl2)",
+        help="CrystFEL only: two half-data-set merge files (usually .hkl1 and .hkl2)",
         type=str,
         nargs=2,
     )
@@ -461,13 +459,13 @@ def run():
     parser.add_argument(
         "--crystal",
         type=str,
-        help="crystal",
+        help="Crystal name",
         dest='cryst',
     )
     parser.add_argument(
         "--dataset",
         type=str,
-        help="dataset",
+        help="Dataset name",
     )
     parser.add_argument(
         "--dmax", "--lowres",
@@ -490,7 +488,6 @@ def run():
         default=10,
         dest='n_bins',
     )
-    # TO DO: find cell and symmetry from a reference PDB file
     # TO DO: check whether the files exist etc.
     args = parser.parse_args()
 
@@ -510,10 +507,11 @@ def run():
         hklin_format = "dials"
     elif reflection_file_reader.any_reflection_file(hklin).file_type() == None:
         hklin_format = "crystfel"
+        spacegroup = None
+        cell_str = None
 
     if args.spacegroup:
         spacegroup = args.spacegroup  # TO DO
-    print("")
     if args.cell:
         cell = args.cell  # TO DO
 
@@ -544,6 +542,19 @@ def run():
     # crystfel: check whether we know spacegroup and cell
     # dials: direct input arguments in command line for spacegroup and cell have higher priority
 
+    if hklin_format == "crystfel" and not spacegroup:
+        sys.stderr.write(
+            "ERROR: Space group was not specified but is required for CrystFEL.\n"
+            "       Specify space group explictely or provide reference PDB or mmCIF file.\n"
+            "       Aborting.\n")
+        sys.exit(1)
+    if hklin_format == "crystfel" and not cell_str:
+        sys.stderr.write(
+            "ERROR: Unit cell parameters were not specified but are required for CrystFEL.\n"
+            "       Specify unit cell parameters explictely or provide reference PDB or mmCIF file or .cell file.\n"
+            "       Aborting.\n")
+        sys.exit(1)
+    print("")
     print("")
     print("DATA STATISTICS:")
     print("================")

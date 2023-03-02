@@ -1,8 +1,7 @@
 import_serial
 =============
 
-Import data from serial macromolecular crystallography to CCP4.
-The program calculates data statistics and convert data to the MTZ format.
+Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4.
 
 Requirements: ccp4-python from CCP4 8.0 or later (it includes CCTBX)
 
@@ -21,29 +20,30 @@ List of all options:
 
    $ ccp4-python -m import_serial --help
    
-   usage: __main__.py [-h] --hklin hklin_file [--half-dataset hkl1 hkl2]
-                      [--project PROJECT] [--crystal CRYST] [--dataset DATASET]
-                      --spacegroup spacegroup --cell cell_a cell_b cell_c
-                      cell_alpha cell_beta cell_gamma [--dmax D_MAX]
-                      [--dmin D_MIN] [--nbins N_BINS]
+   usage: ccp4-python -m import_serial [-h] --hklin hklin_file [--spacegroup spacegroup]
+                                       [--cell cell_a cell_b cell_c cell_alpha cell_beta cell_gamma]
+                                       [--half-dataset hkl1 hkl2] [--project PROJECT]
+                                       [--crystal CRYST] [--dataset DATASET] [--dmax D_MAX]
+                                       [--dmin D_MIN] [--nbins N_BINS]
    
-   Covert hkl file(s) from CrystFEL to mtz and calculate statistics
+   Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4
    
    optional arguments:
      -h, --help            show this help message and exit
      --hklin hklin_file, --HKLIN hklin_file
-                           Specify one merged hkl file from CrystFEL
+                           Specify merged mtz file from xia2.ssx or merged hkl
+                           file from CrystFEL
+     --spacegroup spacegroup
+                           Space group
+     --cell cell_a cell_b cell_c cell_alpha cell_beta cell_gamma
+                           Unit cell parameters divided by spaces, e.g. 60 50 40
+                           90 90 90
      --half-dataset hkl1 hkl2
-                           Two half-data-set merge files from CrystFEL (usually
+                           CrystFEL only: two half-data-set merge files (usually
                            .hkl1 and .hkl2)
      --project PROJECT     Project name
-     --crystal CRYST       crystal
-     --dataset DATASET     dataset
-     --spacegroup spacegroup
-                           Specify space group
-     --cell cell_a cell_b cell_c cell_alpha cell_beta cell_gamma
-                           Specify unit cell parameters divided by spaces, e.g.
-                           60 50 40 90 90 90
+     --crystal CRYST       Crystal name
+     --dataset DATASET     Dataset name
      --dmax D_MAX, --lowres D_MAX
                            Low-resolution cutoff
      --dmin D_MIN, --highres D_MIN
