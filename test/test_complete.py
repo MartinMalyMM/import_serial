@@ -9,15 +9,18 @@ from import_serial import __version__
 
 
 @pytest.mark.parametrize(
-"project, files, spacegroup, cell, others",
+"project, files, others",
 [("116720-721.lst-asdf-scale-no-half-dataset",
   {"hklin": "116720-721.lst-asdf-scale.hkl"},
-   "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65"),
+   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"),
  ("116720-721.lst-asdf-scale",
   {"hklin": "116720-721.lst-asdf-scale.hkl", "hklin1": "116720-721.lst-asdf-scale.hkl1", "hklin2": "116720-721.lst-asdf-scale.hkl2"},
-   "P21", "39.4 78.5 48.0 90 97.94 90", "--nbins 10 --dmin 1.65")],
-ids=["116720-721.lst-asdf-scale", "116720-721.lst-asdf-scale-no-half-dataset"])
-def test_complete(project, files, spacegroup, cell, others, tmp_environ):
+   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"),
+ ("dials-xia2-ssx",
+  {"hklin": "merged.mtz"},
+   "--nbins 20")],
+ids=["116720-721.lst-asdf-scale", "116720-721.lst-asdf-scale-no-half-dataset", "dials-xia2-ssx"])
+def test_complete(project, files, others, tmp_environ):
     print("\nPerforming tests...")
     urllib_wget = urllib.request.urlretrieve
 
@@ -29,10 +32,10 @@ def test_complete(project, files, spacegroup, cell, others, tmp_environ):
         assert os.path.isfile(f)
     hklin = files["hklin"]
     arguments = "--HKLIN " + hklin + \
-        " --spacegroup " + spacegroup + \
-        " --cell " + cell + \
         " --project " + project + \
         " " + others
+    # " --spacegroup " + spacegroup + \
+    # " --cell " + cell + \
     if project == "116720-721.lst-asdf-scale":
         hklin1 = files["hklin1"]
         hklin2 = files["hklin2"]
@@ -44,27 +47,28 @@ def test_complete(project, files, spacegroup, cell, others, tmp_environ):
     if cp.stderr:
         print("STDERR: " + cp.stderr)
 
-    expected_stdout = """Conversion of CrystFEL HKL file to MTZ and import into CCP4
+    expected_stdout = """
+Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4
 
 """
     if project == "116720-721.lst-asdf-scale":
         expected_stdout += """Command line arguments:
---HKLIN 116720-721.lst-asdf-scale.hkl --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --project 116720-721.lst-asdf-scale --nbins 10 --dmin 1.65 --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2"""
+--HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2"""
     elif project == "116720-721.lst-asdf-scale-no-half-dataset":
         expected_stdout += """Command line arguments:
---HKLIN 116720-721.lst-asdf-scale.hkl --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --project 116720-721.lst-asdf-scale-no-half-dataset --nbins 10 --dmin 1.65"""
-
-    expected_stdout += """
+--HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale-no-half-dataset --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"""
+    if "116720-721.lst-asdf-scale" in project:
+        expected_stdout += """
 
 Input parameters:
   hklin 116720-721.lst-asdf-scale.hkl
   spacegroup P21
   cell [39.4, 78.5, 48.0, 90.0, 97.94, 90.0]
 """
-    if project == "116720-721.lst-asdf-scale":
-        expected_stdout += """  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
+        if project == "116720-721.lst-asdf-scale":
+            expected_stdout += """  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
 """
-    expected_stdout += """  project """ + project + """
+        expected_stdout += """  project """ + project + """
   d_min 1.65
   n_bins 10
 
@@ -81,8 +85,8 @@ multiplicity = 38.85
 <I> = 185.0
 <I/sigma(I)> = 2.8
 """
-    if project == "116720-721.lst-asdf-scale":
-        expected_stdout += """CC1/2 = 0.835
+        if project == "116720-721.lst-asdf-scale":
+            expected_stdout += """CC1/2 = 0.835
 CC* = 0.954
 Rsplit = 0.313
 
@@ -102,8 +106,8 @@ Binned values:
 
 MTZ file created: 116720-721.lst-asdf-scale_dataset.mtz
 """
-    elif project == "116720-721.lst-asdf-scale-no-half-dataset":
-        expected_stdout += """
+        elif project == "116720-721.lst-asdf-scale-no-half-dataset":
+            expected_stdout += """
 Binned values:
 
    d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>
@@ -120,6 +124,56 @@ Binned values:
 
 MTZ file created: 116720-721.lst-asdf-scale-no-half-dataset_dataset.mtz
 """
+    elif project == "dials-xia2-ssx":
+        expected_stdout += """Command line arguments:
+--HKLIN merged.mtz --project dials-xia2-ssx --nbins 20
+
+Input parameters:
+  hklin merged.mtz
+  project dials-xia2-ssx
+  n_bins 20
+
+
+DATA STATISTICS:
+================
+
+Overall values:
+
+#observed: 342219
+#unique: 35588
+completeness = 87.30 %
+multiplicity = 9.62
+<I> = 107.2
+<I/sigma(I)> = 11.5
+CC1/2 = 0.945
+CC* = 0.986
+Rsplit = 0.281
+
+Binned values:
+
+   d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>   cc1/2     cc* r_split
+   68.16    4.30    40753    2169   18.79  100.00    527.2    45.9   0.937   0.984   0.179
+    4.29    3.41    31332    2079   15.07  100.00    484.1    42.3   0.933   0.982   0.177
+    3.41    2.98    28746    2055   13.99   99.95    243.4    25.7   0.907   0.975   0.213
+    2.98    2.71    26812    2059   13.02  100.00    134.6    16.7   0.869   0.964   0.248
+    2.71    2.52    25981    2032   12.79  100.00     90.1    12.6   0.839   0.955   0.286
+    2.52    2.37    25295    2055   12.31  100.00     68.6    10.3   0.834   0.954   0.301
+    2.37    2.25    24690    2041   12.10  100.00     59.7     9.2   0.809   0.946   0.324
+    2.25    2.15    24789    2040   12.15   99.95     49.0     8.3   0.805   0.944   0.351
+    2.15    2.07    23287    2004   11.62   99.90     41.9     6.9   0.766   0.931   0.389
+    2.07    2.00    23238    2045   11.36   99.95     32.4     5.9   0.687   0.903   0.463
+    2.00    1.93    18667    2022    9.23   99.95     25.6     4.5   0.596   0.864   0.586
+    1.93    1.88    14318    1995    7.18   99.55     21.2     3.4   0.376   0.739   0.819
+    1.88    1.83    10341    2016    5.13   98.97     15.0     2.1   0.184   0.557   1.414
+    1.83    1.78     8009    1952    4.10   97.41     11.5     1.5   0.088   0.403   1.892
+    1.78    1.74     6028    1921    3.14   94.17      8.8     0.9   0.054   0.320   2.815
+    1.74    1.71     4402    1767    2.49   87.17      7.3     0.7   0.044   0.290   4.701
+    1.71    1.67     2858    1470    1.94   74.20      5.8     0.6   0.020   0.197   5.766
+    1.67    1.64     1778    1122    1.59   55.24      5.2     0.5   0.069   0.360   4.897
+    1.64    1.61      725     586    1.24   29.08      2.0     0.2   0.037   0.267 -37.419
+    1.61    1.58      169     158    1.07    7.82      6.4     0.2  -0.523   0.000  -6.458
+"""
+
     stdout_all = cp.stdout.splitlines(True)
     assert "".join(stdout_all) == expected_stdout
 
