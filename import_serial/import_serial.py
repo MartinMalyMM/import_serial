@@ -410,6 +410,50 @@ def stats_binned_print(stats_binned):  # , half_dataset_available=False):
     return
 
 
+class MyArgumentParser(argparse.ArgumentParser):
+    """ Helper class for `argparse`
+
+    It adds an attribute `add_argument_with_check` that check if file
+    given in argument exist but not open it.
+    Inspired by `https://codereview.stackexchange.com/questions/28608/
+    checking-if-cli-arguments-are-valid-files-directories-in-python`
+    """
+    def __is_valid_file(self, parser, arg):
+        """Checks if file
+        given in argument `arg` exists but does not open it.
+        If not, abort.
+
+        Args:
+            self
+            parser: parser of `argparse`
+            arg (str): argument of `argparse`
+
+        Returns:
+            str: Name of the checked file
+        """
+        if not os.path.isfile(arg):
+            parser.error('The file {} does not exist!'.format(arg))
+        else:
+            # File exists so return the filename
+            return arg
+
+    def add_argument_with_check(self, *args, **kwargs):
+        """New attribute for `argparse` that checks if file
+        given in argument exist but does not open it.
+        """
+        # Look for your FILE settings
+        # type = lambda x: self.__is_valid_file(self, x) # PEP8 E731
+        def type(x):
+            return self.__is_valid_file(self, x)
+        kwargs['type'] = type
+        self.add_argument(*args, **kwargs)
+
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        print('Run `ccp4-python -m import_serial -h` to show the help message.')
+        sys.exit(2)
+
+
 def run():
     from . import __version__
     if not which("f2mtz"):
@@ -417,10 +461,10 @@ def run():
                          "Did you source the paths to CCP4 executables?"
                          "Aborting.\n")
         sys.exit(1)
-    parser = argparse.ArgumentParser(  # TODO requirement
+    parser = MyArgumentParser(
         description="Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4"
     )
-    parser.add_argument(
+    parser.add_argument_with_check(
         "--hklin", "--HKLIN",
         metavar=("hklin_file"),
         help="Specify merged mtz file from xia2.ssx or merged hkl file from CrystFEL",
@@ -442,7 +486,7 @@ def run():
         metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
         # required=True
     )
-    parser.add_argument(
+    parser.add_argument_with_check(
         "--half-dataset",
         metavar=("hkl1", "hkl2"),
         help="CrystFEL only: two half-data-set merge files (usually .hkl1 and .hkl2)",
@@ -489,7 +533,8 @@ def run():
     # TO DO: check whether the files exist etc.
     args = parser.parse_args()
 
-    print("Conversion of CrystFEL HKL file to MTZ and import into CCP4")
+    print("")
+    print("Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4")
     print("")
     print("Command line arguments:")
     print(" ".join(sys.argv[1:]))
