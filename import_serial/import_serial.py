@@ -454,6 +454,40 @@ class MyArgumentParser(argparse.ArgumentParser):
         sys.exit(2)
 
 
+def get_cell_cellfile(cellfile):
+    with open(cellfile, 'r') as f:
+        lines = f.readlines()
+    cell = [None, None, None, None, None, None]
+    for line in lines:
+        try:
+            if line.split()[0] == "al" and line.split()[-1] == "deg":
+                cell[3] = float(line.split()[-2])
+            elif line.split()[0] == "be" and line.split()[-1] == "deg":
+                cell[4] = float(line.split()[-2])
+            elif line.split()[0] == "ga" and line.split()[-1] == "deg":
+                cell[5] = float(line.split()[-2])
+            elif line.split()[0] == "a" and line.split()[-1] == "A":
+                cell[0] = float(line.split()[-2])
+            elif line.split()[0] == "b" and line.split()[-1] == "A":
+                cell[1] = float(line.split()[-2])
+            elif line.split()[0] == "c" and line.split()[-1] == "A" and not "centering" in line:
+                cell[2] = float(line.split()[-2])
+        except:
+            continue
+    print("")
+    if (cell[0] and cell[1] and cell[2] and cell[3] and cell[4] and cell[5]):
+        print(f"Unit cell parameters found in file {cellfile}:")
+        print(" ".join(map(str, cell)))
+    else:
+        sys.stderr.write(
+            f"WARNING: Unit cell parameters could not be parsed from "
+            f"the file {cellfile}.\n"
+            f"         Attempt to find the unit cell parameters found "
+            f"in this file: " + " ".join(map(str, cell)) + "\n")
+        cell = None
+    return cell
+
+
 def run():
     from . import __version__
     if not which("f2mtz"):
@@ -485,6 +519,12 @@ def run():
         help="Unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
         metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
         # required=True
+    )
+    parser.add_argument_with_check(
+        "--cellfile",
+        metavar=("cell_file"),
+        help="Cell file from CrystFEL",
+        type=str,
     )
     parser.add_argument_with_check(
         "--half-dataset",
@@ -550,12 +590,11 @@ def run():
     elif reflection_file_reader.any_reflection_file(hklin).file_type() == None:
         hklin_format = "crystfel"
         spacegroup = None
-        cell_str = None
+        cell = None
+        # cell_str = None
 
     if args.spacegroup:
         spacegroup = args.spacegroup  # TO DO
-    if args.cell:
-        cell = args.cell  # TO DO
 
     if not args.project:
         project = "project"
@@ -579,23 +618,26 @@ def run():
     d_max = args.d_max
     d_min = args.d_min
     n_bins = args.n_bins
-    if args.cell:
-        cell_str = str(args.cell[0]) + " " + str(args.cell[1]) + " " + str(args.cell[2]) + " " + str(args.cell[3]) + " " + str(args.cell[4]) + " " + str(args.cell[5])
-    # crystfel: check whether we know spacegroup and cell
-    # dials: direct input arguments in command line for spacegroup and cell have higher priority
-
-    if hklin_format == "crystfel" and not spacegroup:
-        sys.stderr.write(
-            "ERROR: Space group was not specified but is required for CrystFEL.\n"
-            "       Specify space group explictely or provide reference PDB or mmCIF file.\n"
-            "       Aborting.\n")
-        sys.exit(1)
-    if hklin_format == "crystfel" and not cell_str:
-        sys.stderr.write(
-            "ERROR: Unit cell parameters were not specified but are required for CrystFEL.\n"
-            "       Specify unit cell parameters explictely or provide reference PDB or mmCIF file or .cell file.\n"
-            "       Aborting.\n")
-        sys.exit(1)
+    if hklin_format == "crystfel":
+        if args.cellfile:
+            cell = get_cell_cellfile(args.cellfile)
+        if args.cell:
+            cell = args.cell
+            # cell_str = str(args.cell[0]) + " " + str(args.cell[1]) + " " + str(args.cell[2]) + " " + str(args.cell[3]) + " " + str(args.cell[4]) + " " + str(args.cell[5])
+        # crystfel: check whether we know spacegroup and cell
+        # dials: direct input arguments in command line for spacegroup and cell have higher priority
+        if not spacegroup:
+            sys.stderr.write(
+                "ERROR: Space group was not specified but is required for CrystFEL.\n"
+                "       Specify space group explictely or provide reference PDB or mmCIF file.\n"
+                "       Aborting.\n")
+            sys.exit(1)
+        if not cell:
+            sys.stderr.write(
+                "ERROR: Unit cell parameters were not specified but are required for CrystFEL.\n"
+                "       Specify unit cell parameters explictely or provide reference PDB or mmCIF file or .cell file.\n"
+                "       Aborting.\n")
+            sys.exit(1)
     print("")
     print("")
     print("DATA STATISTICS:")
