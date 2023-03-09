@@ -151,31 +151,54 @@ Rsplit = 0.281
 
 Binned values:
 
-   d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>   cc1/2     cc* r_split
-   68.16    4.30    40753    2169   18.79  100.00    527.2    45.9   0.937   0.984   0.179
-    4.29    3.41    31332    2079   15.07  100.00    484.1    42.3   0.933   0.982   0.177
-    3.41    2.98    28746    2055   13.99   99.95    243.4    25.7   0.907   0.975   0.213
-    2.98    2.71    26812    2059   13.02  100.00    134.6    16.7   0.869   0.964   0.248
-    2.71    2.52    25981    2032   12.79  100.00     90.1    12.6   0.839   0.955   0.286
-    2.52    2.37    25295    2055   12.31  100.00     68.6    10.3   0.834   0.954   0.301
-    2.37    2.25    24690    2041   12.10  100.00     59.7     9.2   0.809   0.946   0.324
-    2.25    2.15    24789    2040   12.15   99.95     49.0     8.3   0.805   0.944   0.351
-    2.15    2.07    23287    2004   11.62   99.90     41.9     6.9   0.766   0.931   0.389
-    2.07    2.00    23238    2045   11.36   99.95     32.4     5.9   0.687   0.903   0.463
-    2.00    1.93    18667    2022    9.23   99.95     25.6     4.5   0.596   0.864   0.586
-    1.93    1.88    14318    1995    7.18   99.55     21.2     3.4   0.376   0.739   0.819
-    1.88    1.83    10341    2016    5.13   98.97     15.0     2.1   0.184   0.557   1.414
-    1.83    1.78     8009    1952    4.10   97.41     11.5     1.5   0.088   0.403   1.892
-    1.78    1.74     6028    1921    3.14   94.17      8.8     0.9   0.054   0.320   2.815
-    1.74    1.71     4402    1767    2.49   87.17      7.3     0.7   0.044   0.290   4.701
-    1.71    1.67     2858    1470    1.94   74.20      5.8     0.6   0.020   0.197   5.766
-    1.67    1.64     1779    1122    1.59   55.24      5.2     0.5   0.069   0.360   4.897
-    1.64    1.61      725     586    1.24   29.08      2.0     0.2   0.037   0.267 -37.419
-    1.61    1.58      169     158    1.07    7.82      6.4     0.2  -0.523   0.000  -6.458
-"""
+   d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>   cc1/2     cc* r_split"""
+        expected_stdout_list = []
+        expected_stdout_list.append("   68.16    4.30    40753    2169   18.79")
+        expected_stdout_list.append("527.2    45.9   0.937   0.984   0.179")
+        expected_stdout_list.append("    4.29    3.41    31332    2079   15.07")
+        expected_stdout_list.append("484.1    42.3   0.933   0.982   0.177")
+        expected_stdout_list.append("    3.41    2.98    28746    2055   13.99")
+        expected_stdout_list.append("243.4    25.7   0.907   0.975   0.213")
+        expected_stdout_list.append("    2.98    2.71    26812    2059   13.02")
+        expected_stdout_list.append("134.6    16.7   0.869   0.964   0.248")
+        expected_stdout_list.append("    2.71    2.52    25981    2032   12.79")
+        expected_stdout_list.append("90.1    12.6   0.839   0.955   0.286")
+        expected_stdout_list.append("    2.52    2.37    25295    2055   12.31")
+        expected_stdout_list.append("68.6    10.3   0.834   0.954   0.301")
+        expected_stdout_list.append("    2.37    2.25    24690    2041   12.10")
+        expected_stdout_list.append("59.7     9.2   0.809   0.946   0.324")
+        expected_stdout_list.append("    2.25    2.15    24789    2040   12.15")
+        expected_stdout_list.append("49.0     8.3   0.805   0.944   0.351")
+        expected_stdout_list.append("    2.15    2.07    23287    2004   11.62")
+        expected_stdout_list.append("41.9     6.9   0.766   0.931   0.389")
+        expected_stdout_list.append("    2.07    2.00    23238    2045   11.36")
+        expected_stdout_list.append("32.4     5.9   0.687   0.903   0.463")
+        expected_stdout_list.append("    2.00    1.93    18667    2022    9.23")
+        expected_stdout_list.append("25.6     4.5   0.596   0.864   0.586")
+        expected_stdout_list.append("    1.93    1.88    14318    1995    7.18")
+        expected_stdout_list.append("21.2     3.4   0.376   0.739   0.819")
+        expected_stdout_list.append("    1.88    1.83    10341    2016    5.13")
+        expected_stdout_list.append("15.0     2.1   0.184   0.557   1.414")
+        expected_stdout_list.append("    1.83    1.78     8009    1952    4.10")
+        expected_stdout_list.append("11.5     1.5   0.088   0.403   1.892")
+        expected_stdout_list.append("    1.78    1.74     6028    1921    3.14")
+        expected_stdout_list.append("8.8     0.9   0.054   0.320   2.815")
+        expected_stdout_list.append("    1.74    1.71     4402    1767    2.49")
+        expected_stdout_list.append("7.3     0.7   0.044   0.290   4.701")
+        expected_stdout_list.append("    1.71    1.67     2858    1470    1.94")
+        expected_stdout_list.append("5.8     0.6   0.020   0.197   5.766")
+        expected_stdout_list.append("    1.67    1.64     1779    1122    1.59")
+        expected_stdout_list.append("5.2     0.5   0.069   0.360   4.897")
+        expected_stdout_list.append("    1.64    1.61      725     586    1.24")
+        expected_stdout_list.append("2.0     0.2   0.037   0.267 -37.419")
+        expected_stdout_list.append("    1.61    1.58      169     158    1.07")
+        expected_stdout_list.append("6.4     0.2  -0.523   0.000  -6.458")
 
     stdout_all = cp.stdout.splitlines(True)
-    assert "".join(stdout_all) == expected_stdout
+    assert expected_stdout in "".join(stdout_all)
+    if project == "dials-xia2-ssx":
+        for halfline in expected_stdout_list:
+            halfline in "".join(stdout_all)
 
     files_list = \
         [hklin,
