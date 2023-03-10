@@ -106,7 +106,7 @@ def get_miller_array_crystfel(hklin, cs, values="I", d_max=0, d_min=0):
     #    h    k    l          I    phase   sigma(I)   nmeas
     hklin_strip = hkl_strip(hklin)
     hklin_df = pd.read_csv(
-        hklin_strip, header=None, index_col=False, sep='\s+',
+        hklin_strip, header=None, index_col=False, sep=r'\s+',
         names=("h", "k", "l", "I", "phase", "sigma(I)", "nmeas"))
     h = flex.int(hklin_df["h"])
     k = flex.int(hklin_df["k"])
@@ -266,10 +266,10 @@ def calc_cc_rsplit(half_dataset, spacegroup, cell, d_max=0, d_min=0, n_bins=10):
     # it contains just data, no header or footer
     #    h    k    l          I    phase   sigma(I)   nmeas
     half1 = pd.read_csv(
-        half_dataset[0], header=None, index_col=False, sep='\s+',
+        half_dataset[0], header=None, index_col=False, sep=r'\s+',
         names=("h", "k", "l", "I", "phase", "sigma(I)", "nmeas"))
     half2 = pd.read_csv(
-        half_dataset[1], header=None, index_col=False, sep='\s+',
+        half_dataset[1], header=None, index_col=False, sep=r'\s+',
         names=("h", "k", "l", "I", "phase", "sigma(I)", "nmeas"))
     h1 = flex.int(half1["h"])
     k1 = flex.int(half1["k"])
@@ -484,25 +484,42 @@ def get_cell_cellfile(cellfile):
         sys.stderr.write(
             f"WARNING: Unit cell parameters could not be parsed from "
             f"the file {cellfile}.\n"
-            f"         Attempt to find the unit cell parameters found "
+            f"Attempt to find the unit cell parameters found "
             f"in this file: " + " ".join(map(str, cell)) + "\n")
         cell = None
     return cell
 
 
+def get_cs_reference(reference):
+    from iotbx import file_reader
+    file = file_reader.any_file(reference)
+    try:
+        cs = file.crystal_symmetry()
+        # cell = pdb_file.crystal_symmetry().unit_cell().parameters()
+        # spacegroup = pdb_file.crystal_symmetry().space_group()
+        print("")
+        print(f"Symmetry from the reference file {reference}:")
+        print(str(cs))
+    except NotImplementedError:
+        cs = None
+        sys.stderr.write(
+            f"WARNING: Symmetry could not be found in the provided "
+            f"reference file {reference}.\n")
+    return cs
+
+
 def run():
     from . import __version__
-    if not which("f2mtz"):
-        sys.stderr.write(f"ERROR: Program f2mtz from CCP4 is not available.\n"
-                         "Did you source the paths to CCP4 executables?"
-                         "Aborting.\n")
-        sys.exit(1)
+    # if not which("f2mtz"):
+    #     sys.stderr.write(f"ERROR: Program f2mtz from CCP4 is not available.\n"
+    #                      "Did you source the paths to CCP4 executables?"
+    #                      "Aborting.\n")
+    #     sys.exit(1)
     parser = MyArgumentParser(
         description="Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them to CCP4"
     )
     parser.add_argument_with_check(
         "--hklin", "--HKLIN",
-        metavar=("hklin_file"),
         help="Specify merged mtz file from xia2.ssx or merged hkl file from CrystFEL",
         type=str,
         required=True
@@ -511,26 +528,29 @@ def run():
         "--spacegroup",
         type=str,
         help="Space group",
-        metavar="spacegroup",
-        # required=True
     )
     parser.add_argument(
         "--cell",
         type=float,
         nargs=6,
         help="Unit cell parameters divided by spaces, e.g. 60 50 40 90 90 90",
-        metavar=("cell_a", "cell_b", "cell_c", "cell_alpha", "cell_beta", "cell_gamma"),
-        # required=True
+        metavar=("a", "b", "c", "alpha", "beta", "gamma"),
     )
     parser.add_argument_with_check(
         "--cellfile",
-        metavar=("cell_file"),
         help="Cell file from CrystFEL",
         type=str,
     )
     parser.add_argument_with_check(
+        "--reference", "--ref", "--pdb", "--cif", "--mmcif",
+        metavar="REFERENCE",
+        help="Reference file (PDB, mmCIF or MTZ) to provide spacegroup and unit cell",
+        type=str,
+        dest="ref",
+    )
+    parser.add_argument_with_check(
         "--half-dataset",
-        metavar=("hkl1", "hkl2"),
+        metavar=("HKL1", "HKL2"),
         help="CrystFEL only: two half-data-set merge files (usually .hkl1 and .hkl2)",
         type=str,
         nargs=2,
@@ -593,10 +613,6 @@ def run():
         hklin_format = "crystfel"
         spacegroup = None
         cell = None
-        # cell_str = None
-
-    if args.spacegroup:
-        spacegroup = args.spacegroup  # TO DO
 
     if not args.project:
         project = "project"
@@ -611,7 +627,7 @@ def run():
     else:
         dataset = args.dataset
     prefix = f"{project}_{dataset}"
-    prefix = "".join(i for i in prefix if i not in "\/:*?<>|")
+    prefix = "".join(i for i in prefix if i not in r"\/:*?<>|")
     hklout = f"{prefix}.mtz"
     logout = f"{prefix}.html"
     jsonout = f"{prefix}.json"
@@ -620,26 +636,47 @@ def run():
     d_max = args.d_max
     d_min = args.d_min
     n_bins = args.n_bins
-    if hklin_format == "crystfel":
-        if args.cellfile:
-            cell = get_cell_cellfile(args.cellfile)
+
+    # process symmetry: space group and unit cell parameters
+    cs = None
+    if args.spacegroup:
         if args.cell:
             cell = args.cell
-            # cell_str = str(args.cell[0]) + " " + str(args.cell[1]) + " " + str(args.cell[2]) + " " + str(args.cell[3]) + " " + str(args.cell[4]) + " " + str(args.cell[5])
-        # crystfel: check whether we know spacegroup and cell
-        # dials: direct input arguments in command line for spacegroup and cell have higher priority
-        if not spacegroup:
+        elif args.cellfile:
+            cell = get_cell_cellfile(args.cellfile)
+        if args.cell or args.cellfile:
+            cs = crystal.symmetry(
+                unit_cell=uctbx.unit_cell(cell),
+                space_group=sgtbx.space_group_info(args.spacegroup).group())
+        elif args.ref:
+            cs = get_cs_reference(args.ref)
+    elif args.ref:
+        cs = get_cs_reference(args.ref)
+    # crystfel: check whether we know spacegroup and cell
+    if hklin_format == "crystfel" and not cs:
+        # raise error and abort
+        if not args.spacegroup and (args.cell or args.cellfile):
+            # error missing spacegroup
             sys.stderr.write(
                 "ERROR: Space group was not specified but is required for CrystFEL.\n"
-                "       Specify space group explictely or provide reference PDB or mmCIF file.\n"
-                "       Aborting.\n")
-            sys.exit(1)
-        if not cell:
+                "Specify space group explicitly (option --spacegroup) "
+                "or provide reference PDB, mmCIF or MTZ file (option --reference).\n")
+        elif (not args.cell or not args.cellfile) and args.spacegroup:
+            # error missing cell
             sys.stderr.write(
                 "ERROR: Unit cell parameters were not specified but are required for CrystFEL.\n"
-                "       Specify unit cell parameters explictely or provide reference PDB or mmCIF file or .cell file.\n"
-                "       Aborting.\n")
-            sys.exit(1)
+                "Specify unit cell parameters explicitly (options  --cell or --cellfile) "
+                "or provide reference PDB, mmCIF or MTZ file (option --reference).\n")
+        else:  # if not args.spacegroup and not args.cell and not args.cellfile and not args.ref:
+            # error missing everything
+            sys.stderr.write(
+                "ERROR: Unit cell parameters and spacegroup were not specified but are required for CrystFEL.\n"
+                "Specify unit cell parameters (options  --cell or --cellfile) "
+                "and space group (option --spacegroup) "
+                "or provide reference PDB, mmCIF or MTZ file (option --reference).\n")
+        sys.stderr.write("Aborting.\n")
+        sys.exit(1)
+
     print("")
     print("")
     print("DATA STATISTICS:")
@@ -678,10 +715,6 @@ def run():
                     f"for calculation of statistics: {half_dataset[0]} {half_dataset[1]}")
             else:
                 half_dataset = None
-            cs = crystal.symmetry(
-                unit_cell=uctbx.unit_cell(cell),
-                space_group=sgtbx.space_group_info(spacegroup).group()
-            )
             m_all_i = get_miller_array_crystfel(hklin, cs, "I", d_max=d_max, d_min=d_min)
             m_all_nmeas = get_miller_array_crystfel(hklin, cs, "nmeas", d_max=d_max, d_min=d_min)
             if half_dataset:
