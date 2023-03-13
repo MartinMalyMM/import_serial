@@ -460,6 +460,7 @@ def get_cell_cellfile(cellfile):
     with open(cellfile, 'r') as f:
         lines = f.readlines()
     cell = [None, None, None, None, None, None]
+    cell_string = None
     for line in lines:
         try:
             if line.split()[0] == "al" and line.split()[-1] == "deg":
@@ -476,18 +477,19 @@ def get_cell_cellfile(cellfile):
                 cell[2] = float(line.split()[-2])
         except:
             continue
-    print("")
-    if (cell[0] and cell[1] and cell[2] and cell[3] and cell[4] and cell[5]):
-        print(f"Unit cell parameters found in file {cellfile}:")
-        print(" ".join(map(str, cell)))
-    else:
-        sys.stderr.write(
-            f"WARNING: Unit cell parameters could not be parsed from "
-            f"the file {cellfile}.\n"
-            f"Attempt to find the unit cell parameters found "
-            f"in this file: " + " ".join(map(str, cell)) + "\n")
-        cell = None
-    return cell
+        print("")
+        if (cell[0] and cell[1] and cell[2] and cell[3] and cell[4] and cell[5]):
+            cell_string = " ".join(map(str, cell))
+            print(f"Unit cell parameters found in file {cellfile}:")
+            print(cell_string)
+        else:
+            sys.stderr.write(
+                f"WARNING: Unit cell parameters could not be parsed from "
+                f"the file {cellfile}.\n"
+                f"Attempt to find the unit cell parameters found "
+                f"in this file: " + " ".join(map(str, cell)) + "\n")
+            cell = None
+        return cell, cell_string
 
 
 def get_cs_reference(reference):
@@ -495,17 +497,18 @@ def get_cs_reference(reference):
     file = file_reader.any_file(reference)
     try:
         cs = file.crystal_symmetry()
-        # cell = pdb_file.crystal_symmetry().unit_cell().parameters()
-        # spacegroup = pdb_file.crystal_symmetry().space_group()
+        spacegroup = file.crystal_symmetry().space_group().info()
+        cell = file.crystal_symmetry().unit_cell().parameters()
+        cell_string = " ".join(map(str, cell))
         print("")
         print(f"Symmetry from the reference file {reference}:")
         print(str(cs))
     except NotImplementedError:
-        cs = None
         sys.stderr.write(
             f"WARNING: Symmetry could not be found in the provided "
             f"reference file {reference}.\n")
-    return cs
+        return None, None, None
+    return cs, spacegroup, cell_string
 
 
 def run():
@@ -643,15 +646,15 @@ def run():
         if args.cell:
             cell = args.cell
         elif args.cellfile:
-            cell = get_cell_cellfile(args.cellfile)
+            cell, cell_string = get_cell_cellfile(args.cellfile)
         if args.cell or args.cellfile:
             cs = crystal.symmetry(
                 unit_cell=uctbx.unit_cell(cell),
                 space_group=sgtbx.space_group_info(args.spacegroup).group())
         elif args.ref:
-            cs = get_cs_reference(args.ref)
+            cs, spacegroup, cell_string = get_cs_reference(args.ref)
     elif args.ref:
-        cs = get_cs_reference(args.ref)
+        cs, spacegroup, cell_string = get_cs_reference(args.ref)
     # crystfel: check whether we know spacegroup and cell
     if hklin_format == "crystfel" and not cs:
         # raise error and abort
