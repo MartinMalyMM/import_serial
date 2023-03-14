@@ -477,19 +477,54 @@ def get_cell_cellfile(cellfile):
                 cell[2] = float(line.split()[-2])
         except:
             continue
+    print("")
+    if (cell[0] and cell[1] and cell[2] and cell[3] and cell[4] and cell[5]):
+        cell_string = " ".join(map(str, cell))
+        print(f"Unit cell parameters found in file {cellfile}:")
+        print(cell_string)
+    else:
+        sys.stderr.write(
+            f"WARNING: Unit cell parameters could not be parsed from "
+            f"the file {cellfile}.\n"
+            f"Attempt to find the unit cell parameters found "
+            f"in this file: " + " ".join(map(str, cell)) + "\n")
+        cell = None
+    return cell, cell_string
+
+
+def get_cell_streamfile(streamfile):
+    cell = [None, None, None, None, None, None]
+    cell_string = None
+    if os.path.isfile(streamfile + "_tmp"):
+        os.remove(streamfile + "_tmp")
+    with open(streamfile, "r") as file1:
+        with open(streamfile + "_tmp", "a+") as file2:
+            for line in file1:
+                if "Cell parameters " in line and len(line.split()) == 10:
+                    file2.write(line)
+    if os.path.isfile(streamfile + "_tmp"):
+        cell_df = pd.read_csv(
+            streamfile + "_tmp", header=None, index_col=False, sep=r'\s+',
+            names=("none1", "none2", "a", "b", "c", "none3", "alpha", "beta", "gamma", "none4"))
+        cell_df = cell_df.drop(columns=["none1", "none2", "none3", "none4"])
+        cell_df = cell_df.astype(float)
+        cell[0] = round(cell_df.mean()["a"] * 10, 2)
+        cell[1] = round(cell_df.mean()["b"] * 10, 2)
+        cell[2] = round(cell_df.mean()["c"] * 10, 2)
+        cell[3] = round(cell_df.mean()["alpha"], 2)
+        cell[4] = round(cell_df.mean()["beta"], 2)
+        cell[5] = round(cell_df.mean()["gamma"], 2)
+        cell_string = " ".join(map(str, cell))
         print("")
-        if (cell[0] and cell[1] and cell[2] and cell[3] and cell[4] and cell[5]):
-            cell_string = " ".join(map(str, cell))
-            print(f"Unit cell parameters found in file {cellfile}:")
-            print(cell_string)
-        else:
-            sys.stderr.write(
-                f"WARNING: Unit cell parameters could not be parsed from "
-                f"the file {cellfile}.\n"
-                f"Attempt to find the unit cell parameters found "
-                f"in this file: " + " ".join(map(str, cell)) + "\n")
-            cell = None
-        return cell, cell_string
+        print(f"Unit cell parameters fit using file {streamfile}:")
+        print(cell_string)
+        os.remove(streamfile + "_tmp")
+    else:
+        sys.stderr.write(
+            f"WARNING: Unit cell parameters could not be fitted from "
+            f"the file {streamfile}.\n")
+        cell = None
+    return cell, cell_string
 
 
 def get_cs_reference(reference):
@@ -542,6 +577,11 @@ def run():
     parser.add_argument_with_check(
         "--cellfile",
         help="Cell file from CrystFEL",
+        type=str,
+    )
+    parser.add_argument_with_check(
+        "--streamfile",
+        help="Stream file from CrystFEL",
         type=str,
     )
     parser.add_argument_with_check(
@@ -647,10 +687,13 @@ def run():
             cell = args.cell
         elif args.cellfile:
             cell, cell_string = get_cell_cellfile(args.cellfile)
-        if args.cell or args.cellfile:
+        elif args.streamfile:
+            cell, cell_string = get_cell_streamfile(args.streamfile)
+        if args.cell or args.cellfile or args.streamfile:  # everything except reference file
+            spacegroup = args.spacegroup
             cs = crystal.symmetry(
                 unit_cell=uctbx.unit_cell(cell),
-                space_group=sgtbx.space_group_info(args.spacegroup).group())
+                space_group=sgtbx.space_group_info(spacegroup).group())
         elif args.ref:
             cs, spacegroup, cell_string = get_cs_reference(args.ref)
     elif args.ref:
