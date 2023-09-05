@@ -586,7 +586,9 @@ def get_cs_reference(reference):
     try:
         cs = file.crystal_symmetry()
         spacegroup = file.crystal_symmetry().space_group().info()
-        cell = file.crystal_symmetry().unit_cell().parameters()
+        cell = list(file.crystal_symmetry().unit_cell().parameters())
+        for i in range(len(cell)):
+            cell[i] = round(cell[i], 2)
         cell_string = " ".join(map(str, cell))
         print("")
         print(f"Symmetry from the reference file {reference}:")
