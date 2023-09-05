@@ -598,9 +598,6 @@ def get_cs_reference(reference):
         return None, None, None
     return cs, spacegroup, cell_string
 
-    dataset = mtz.dataset(mtz_crystal=crystal, i_dataset=0)
-    assert dataset.wavelength() == 0
-
 
 def run():
     from . import __version__
