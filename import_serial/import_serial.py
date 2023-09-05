@@ -15,6 +15,8 @@ try:
     from iotbx import mtz, reflection_file_reader
 except ModuleNotFoundError:
     print("WARNING: ModuleNotFoundError: Module CCTBX was not found.")
+except ImportError:
+    print("WARNING: ImportError: Module CCTBX was not found.")
 
 
 def hkl_strip(hklin):
@@ -527,6 +529,57 @@ def get_cell_streamfile(streamfile):
     return cell, cell_string
 
 
+def get_wavelength_streamfile(streamfile):
+    energy_eV = None
+    wavelength = None
+    if os.path.isfile(streamfile + "_tmp"):
+        os.remove(streamfile + "_tmp")
+    with open(streamfile, "r") as file1:
+        with open(streamfile + "_tmp", "a+") as file2:
+            for line in file1:
+                if "photon_energy_eV" in line and len(line.split()) == 3:
+                    file2.write(line)
+    if os.path.isfile(streamfile + "_tmp"):
+        energy_eV_df = pd.read_csv(
+            streamfile + "_tmp", header=None, index_col=False, sep=r'\s+',
+            names=("none1", "none2", "energy_eV"))
+        energy_eV_df = energy_eV_df.drop(columns=["none1", "none2"])
+        energy_eV_df = energy_eV_df.astype(float)
+        energy_eV = energy_eV_df.median()["energy_eV"]
+        wavelength = 12398.425 / energy_eV
+        wavelength = round(wavelength, 5)
+        print("")
+        print(f"Wavelength median using file {streamfile}:")
+        print(str(wavelength))
+        os.remove(streamfile + "_tmp")
+    else:
+        sys.stderr.write(
+            f"WARNING: Wavelength could not be fitted from "
+            f"the file {streamfile}.\n")
+        wavelength = 0
+    return wavelength
+
+
+def get_wavelength_reference(ref):
+    if reflection_file_reader.any_reflection_file(ref).file_type() == 'ccp4_mtz':
+        try:
+            mtz_object = mtz.object(file_name=ref)
+            crystal = mtz.crystal(mtz_object=mtz_object, i_crystal=1)
+            dataset = mtz.dataset(mtz_crystal=crystal, i_dataset=0)
+            wavelength = round(float(dataset.wavelength()), 5)
+            print("")
+            print(f"Wavelength found in {ref}:")
+            print(str(wavelength))
+        except:
+            sys.stderr.write(
+                f"WARNING: Wavelength could not found in "
+                f"the file {ref}.\n")
+            wavelength = 0
+    else:
+        wavelength = 0
+    return wavelength
+
+
 def get_cs_reference(reference):
     from iotbx import file_reader
     file = file_reader.any_file(reference)
@@ -544,6 +597,9 @@ def get_cs_reference(reference):
             f"reference file {reference}.\n")
         return None, None, None
     return cs, spacegroup, cell_string
+
+    dataset = mtz.dataset(mtz_crystal=crystal, i_dataset=0)
+    assert dataset.wavelength() == 0
 
 
 def run():
@@ -635,6 +691,12 @@ def run():
         default=10,
         dest='n_bins',
     )
+    parser.add_argument(
+        "--wavelength", "-w",
+        type=float,
+        help="Wavelength (only for data from CrystFEL)",
+        default=0,
+    )
     # TO DO: check whether the files exist etc.
     args = parser.parse_args()
 
@@ -679,6 +741,7 @@ def run():
     d_max = args.d_max
     d_min = args.d_min
     n_bins = args.n_bins
+    wavelength = args.wavelength
 
     # process symmetry: space group and unit cell parameters
     cs = None
@@ -722,6 +785,10 @@ def run():
                 "or provide reference PDB, mmCIF or MTZ file (option --reference).\n")
         sys.stderr.write("Aborting.\n")
         sys.exit(1)
+    if hklin_format == "crystfel" and args.streamfile and not wavelength:
+        wavelength = get_wavelength_streamfile(args.streamfile)
+    elif hklin_format == "crystfel" and args.ref and not wavelength:
+        wavelength = get_wavelength_reference(args.ref)
 
     print("")
     print("")
@@ -824,10 +891,10 @@ def run():
     # remove hkltmp ?
     # print(f"MTZ file created: {hklout}")
     if hklin_format == "crystfel":
-        mtz_dataset = m_all_i.as_mtz_dataset(column_root_label="IMEAN")
+        mtz_dataset = m_all_i.as_mtz_dataset(column_root_label="IMEAN", wavelength=wavelength)
         mtz_dataset.add_miller_array(m_all_nmeas, column_root_label="NMEAS")
         # mtz_dataset.add_miller_array(r_free_flags, column_root_label="FreeR_flag")
-        mtz_dataset.mtz_object().write(hklout)
+        mtz_dataset.mtz_object().write(file_name=hklout)
         print(f"\nMTZ file created: {hklout}")
         # Clean up a bit
         files_to_remove = [hklin + "_tmp"]
