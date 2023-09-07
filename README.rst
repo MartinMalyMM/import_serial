@@ -52,6 +52,8 @@ List of all options:
                            High-resolution cutoff
      --nbins N_BINS, --nshells N_BINS
                            Number of resolution bins
+     --wavelength WAVELENGTH, -w WAVELENGTH
+                           Wavelength (only for data from CrystFEL)
 
 Installation
 ------------
