@@ -3,4 +3,4 @@ from .import_serial import run
 
 
 __all__ = ['run']
-__version__ = '0.6'
+__version__ = '0.7'
