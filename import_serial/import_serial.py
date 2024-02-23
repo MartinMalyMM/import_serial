@@ -617,6 +617,18 @@ def run():
         type=str,
         required=True
     )
+    parser.add_argument_with_check(
+        "--half-dataset",
+        metavar=("HKL1", "HKL2"),
+        help="CrystFEL only: two half-data-set merge files (usually .hkl1 and .hkl2)",
+        type=str,
+        nargs=2,
+    )
+    parser.add_argument(
+        "--wavelength", "-w",
+        type=float,
+        help="Wavelength (required for data from CrystFEL)",
+    )
     parser.add_argument(
         "--spacegroup",
         type=str,
@@ -646,12 +658,26 @@ def run():
         type=str,
         dest="ref",
     )
-    parser.add_argument_with_check(
-        "--half-dataset",
-        metavar=("HKL1", "HKL2"),
-        help="CrystFEL only: two half-data-set merge files (usually .hkl1 and .hkl2)",
-        type=str,
-        nargs=2,
+    parser.add_argument(
+        "--dmin", "--highres",
+        type=float,
+        help="High-resolution cutoff",
+        default=0,
+        dest='d_min',
+    )
+    parser.add_argument(
+        "--dmax", "--lowres",
+        type=float,
+        help="Low-resolution cutoff",
+        default=0,
+        dest='d_max',
+    )
+    parser.add_argument(
+        "--nbins", "--nshells",
+        type=int,
+        help="Number of resolution bins",
+        default=10,
+        dest='n_bins',
     )
     parser.add_argument(
         "--project",
@@ -668,32 +694,6 @@ def run():
         "--dataset",
         type=str,
         help="Dataset name",
-    )
-    parser.add_argument(
-        "--dmax", "--lowres",
-        type=float,
-        help="Low-resolution cutoff",
-        default=0,
-        dest='d_max',
-    )
-    parser.add_argument(
-        "--dmin", "--highres",
-        type=float,
-        help="High-resolution cutoff",
-        default=0,
-        dest='d_min',
-    )
-    parser.add_argument(
-        "--nbins", "--nshells",
-        type=int,
-        help="Number of resolution bins",
-        default=10,
-        dest='n_bins',
-    )
-    parser.add_argument(
-        "--wavelength", "-w",
-        type=float,
-        help="Wavelength (required for data from CrystFEL)",
     )
     args = parser.parse_args()
 
