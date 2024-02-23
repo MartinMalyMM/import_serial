@@ -693,10 +693,8 @@ def run():
     parser.add_argument(
         "--wavelength", "-w",
         type=float,
-        help="Wavelength (only for data from CrystFEL)",
-        default=0,
+        help="Wavelength (required for data from CrystFEL)",
     )
-    # TO DO: check whether the files exist etc.
     args = parser.parse_args()
 
     print("")
@@ -740,8 +738,16 @@ def run():
     d_max = args.d_max
     d_min = args.d_min
     n_bins = args.n_bins
-    wavelength = args.wavelength
 
+    # wavelength required for CrystFEL
+    if hklin_format == "crystfel" and not args.wavelength:
+        sys.stderr.write(
+            "ERROR: Wavelength is not specified but are required for CrystFEL.\n"
+            "Specify wavelength (option  --wavelength)\n")
+        sys.stderr.write("Aborting.\n")
+        sys.exit(1)
+    else:
+        wavelength = args.wavelength
     # process symmetry: space group and unit cell parameters
     cs = None
     if args.spacegroup:
