@@ -12,10 +12,13 @@ from import_serial import __version__
 "project, files, others",
 [("116720-721.lst-asdf-scale-no-half-dataset",
   {"hklin": "116720-721.lst-asdf-scale.hkl"},
-   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"),
+   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --wavelength 1.1"),
  ("116720-721.lst-asdf-scale",
   {"hklin": "116720-721.lst-asdf-scale.hkl", "hklin1": "116720-721.lst-asdf-scale.hkl1", "hklin2": "116720-721.lst-asdf-scale.hkl2"},
-   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"),
+   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --wavelength 1.1"),
+# ("116720-721.lst-asdf-scale-auto-half-dataset",
+#  {"hklin": "116720-721.lst-asdf-scale.hkl"},
+#   "--spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --wavelength 1.1"),
  ("dials-xia2-ssx",
   {"hklin": "merged.mtz"},
    "--nbins 20")],
@@ -23,6 +26,10 @@ ids=["116720-721.lst-asdf-scale", "116720-721.lst-asdf-scale-no-half-dataset", "
 def test_complete(project, files, others, tmp_environ):
     print("\nPerforming tests...")
     urllib_wget = urllib.request.urlretrieve
+    files_not_now_allowed = ["116720-721.lst-asdf-scale.hkl1", "116720-721.lst-asdf-scale.hkl2"]
+    for f in files_not_now_allowed:
+        if os.path.isfile(f):
+            os.remove(f)
 
     print("   Downloading test data from https://github.com/MartinMalyMM/import_serial_test_data ...")
     url_prefix = "https://raw.githubusercontent.com/MartinMalyMM/import_serial_test_data/main/"
@@ -53,24 +60,25 @@ Calculate statistics of serial MX data from xia2.ssx or CrystFEL and import them
 """
     if project == "116720-721.lst-asdf-scale":
         expected_stdout += """Command line arguments:
---HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2"""
+--HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --wavelength 1.1 --half-dataset 116720-721.lst-asdf-scale.hkl1 116720-721.lst-asdf-scale.hkl2"""
     elif project == "116720-721.lst-asdf-scale-no-half-dataset":
         expected_stdout += """Command line arguments:
---HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale-no-half-dataset --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65"""
+--HKLIN 116720-721.lst-asdf-scale.hkl --project 116720-721.lst-asdf-scale-no-half-dataset --spacegroup P21 --cell 39.4 78.5 48.0 90 97.94 90 --nbins 10 --dmin 1.65 --wavelength 1.1"""
     if "116720-721.lst-asdf-scale" in project:
-        expected_stdout += """
+        expected_stdout += f"""
 
 Input parameters:
   hklin 116720-721.lst-asdf-scale.hkl
-  spacegroup P21
-  cell [39.4, 78.5, 48.0, 90.0, 97.94, 90.0]
 """
         if project == "116720-721.lst-asdf-scale":
             expected_stdout += """  half_dataset ['116720-721.lst-asdf-scale.hkl1', '116720-721.lst-asdf-scale.hkl2']
 """
-        expected_stdout += """  project """ + project + """
+        expected_stdout += f"""  wavelength 1.1
+  spacegroup P21
+  cell [39.4, 78.5, 48.0, 90.0, 97.94, 90.0]
   d_min 1.65
   n_bins 10
+  project {project}
 
 
 DATA STATISTICS:
@@ -130,8 +138,8 @@ MTZ file created: 116720-721.lst-asdf-scale-no-half-dataset_dataset.mtz
 
 Input parameters:
   hklin merged.mtz
-  project dials-xia2-ssx
   n_bins 20
+  project dials-xia2-ssx
 
 
 DATA STATISTICS:
@@ -151,7 +159,8 @@ Rsplit = 0.281
 
 Binned values:
 
-   d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>   cc1/2     cc* r_split"""
+   d_max   d_min     #obs   #uniq   mult.   %comp      <I>  <I/sI>   cc1/2     cc* r_split
+"""
         expected_stdout_list = []
         expected_stdout_list.append("   68.16    4.30    40753    2169   18.79")
         expected_stdout_list.append("527.2    45.9   0.937   0.984   0.179")
@@ -195,10 +204,15 @@ Binned values:
         expected_stdout_list.append("6.4     0.2  -0.523   0.000  -6.458")
 
     stdout_all = cp.stdout.splitlines(True)
-    assert expected_stdout in "".join(stdout_all)
+    # print("".join(stdout_all))  # for debugging
+    expected_stdout_list = expected_stdout.splitlines(keepends=True)
+    for i, line in enumerate(expected_stdout_list):
+        # print(i)            # for debugging
+        assert expected_stdout_list[i] == stdout_all[i]
+    # assert expected_stdout in "".join(stdout_all)
     if project == "dials-xia2-ssx":
         for halfline in expected_stdout_list:
-            halfline in "".join(stdout_all)
+            assert halfline in "".join(stdout_all)
 
     files_list = \
         [hklin,
