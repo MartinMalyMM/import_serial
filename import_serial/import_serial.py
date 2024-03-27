@@ -742,7 +742,7 @@ def run():
     # wavelength required for CrystFEL
     if hklin_format == "crystfel" and not args.wavelength:
         sys.stderr.write(
-            "ERROR: Wavelength is not specified but are required for CrystFEL.\n"
+            "ERROR: Wavelength is not specified but required for CrystFEL.\n"
             "Specify wavelength (option  --wavelength)\n")
         sys.stderr.write("Aborting.\n")
         sys.exit(1)
