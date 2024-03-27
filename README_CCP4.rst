@@ -8,25 +8,25 @@ Example of usage
 
 CrystFEL:
 
-Merged data file (I): data.hkl
-Merged half data set (I): data.hkl1
-Merged half data set (I): data.hkl2
-CrystFEL cell file: cell.cell
-Space group: P 62 2 2
-Wavelength (A): 1.13
-High resolution cutoff (A): 1.6
+* Merged data file (I): data.hkl
+* Merged half data set (I): data.hkl1
+* Merged half data set (I): data.hkl2
+* CrystFEL cell file: cell.cell
+* Space group: P 62 2 2
+* Wavelength (A): 1.13
+* High resolution cutoff (A): 1.6
 
-xia2_ssx:
+xia2.ssx:
 
-Merged data file (I): data.mtz
-High resolution cutoff (A): 1.6
+* Merged data file (I): merged.mtz
+* High resolution cutoff (A): 1.6
 
 It is also possible to run this program in command line or CCP4Console. The obtained MTZ files are recommended to import in CCP4 using the import merged task.
 
 .. code ::
 
    $ ccp4-python -m import_serial --hklin data.hkl --half-dataset data.hkl1 data.hkl2 --cellfile cell.cell --spacegroup P6222 --wavelength 1.13 --dmin 1.6
-   $ ccp4-python -m import_serial --hklin data.mtz --dmin 1.6
+   $ ccp4-python -m import_serial --hklin merged.mtz --dmin 1.6
 
 Test and example data are available in at https://github.com/MartinMalyMM/import_serial_test_data
 
